@@ -5,8 +5,7 @@
 #include <opencv2/opencv.hpp>
 
 
-//#define filepath "~/research/20200422/src/pictures/A3/pic1.jpg"
-#define filepath "/Users/yutaro/research/20200422/src/pictures/A3/pic1.jpg"
+#define filepath "/Users/yutaro/research/2020/src/pictures/A3/pic1.jpg"
 
 int main()
 {
