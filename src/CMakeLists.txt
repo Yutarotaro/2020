@@ -1,9 +1,12 @@
 cmake_minimum_required(VERSION 3.1)
 project(MyOpenCVProject)
-
+SET( CMAKE_CXX_COMPILER /usr/bin/clang++ )
 # Copy resouce
 file(COPY ${CMAKE_SOURCE_DIR}/include/ DESTINATION ${PROJECT_BINARY_DIR}/include/)
+
+
 add_definitions(-DRESOURCE_DIR="${PROJECT_BINARY_DIR}/include/")
+add_definitions( -std=c++17 -Wall )
 
 # Create Main project
 set(SOURCES

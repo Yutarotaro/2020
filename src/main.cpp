@@ -1,3 +1,4 @@
+#include "include/circle.hpp"
 #include <iostream>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -11,15 +12,13 @@ int main()
 {
 
     cv::Mat img = cv::imread(filepath, 1);
-
     if (img.empty()) {
         std::cout << "failed to read pictures" << std::endl;
         return -1;
     }
 
 
-    cv::namedWindow("picture");
-    cv::imshow("picture", img);
+    Circle::circleDetect(img);
 
     while (true) {
         const int key = cv::waitKey(1);
@@ -27,6 +26,7 @@ int main()
             break;
         }
     }
+
 
     cv::destroyAllWindows();
 
