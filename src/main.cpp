@@ -1,4 +1,7 @@
-#include "include/circle.hpp"
+#include "include/init.hpp"
+#include "include/module.hpp"
+#include "include/mser.hpp"
+#include <cstdlib>
 #include <iostream>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -6,19 +9,21 @@
 #include <opencv2/opencv.hpp>
 
 
-#define filepath "/Users/yutaro/research/2020/src/pictures/A3/pic1.jpg"
-
-int main()
+int main(int argc, char* argv[])
 {
 
-    cv::Mat img = cv::imread(filepath, 1);
-    if (img.empty()) {
-        std::cout << "failed to read pictures" << std::endl;
-        return -1;
+    cv::Mat img;
+    if (argc == 3) {
+        int a = argv[1][0] - '0';
+        int b = argv[2][0] - '0';
+        //imread(format());っていうのがある！
+        Init::input_images(a, b, img);
+        //Module::circleDetect(img);
+        Module::ellipseDetect(img);
+        //Module::showHSV(img);
     }
+    //std::vector<cv::Mat> output = target(img);
 
-
-    Circle::circleDetect(img);
 
     while (true) {
         const int key = cv::waitKey(1);
@@ -26,7 +31,6 @@ int main()
             break;
         }
     }
-
 
     cv::destroyAllWindows();
 
