@@ -1,3 +1,6 @@
+#ifndef MODULE_H_
+#define MODULE_H_
+
 #include <iostream>
 #include <opencv2/opencv.hpp>
 
@@ -358,3 +361,5 @@ int showHSV(cv::Mat img)
 }
 */
 }  // namespace Module
+
+#endif

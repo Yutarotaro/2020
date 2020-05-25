@@ -1,3 +1,4 @@
+#include "include/difference.hpp"
 #include "include/init.hpp"
 #include "include/module.hpp"
 #include "include/read.hpp"
@@ -11,21 +12,27 @@
 #include <string>
 #include <vector>
 
-using namespace std;
-
 int main(void)
 {
 
     cv::Mat Src1, Src2;
 
-    if (Init::input_images(1, 2, Src1) || Init::input_images(1, 3, Src2)) {
+    if (Init::input_images(1, 5, Src1) || Init::input_images(1, 3, Src2)) {
         cout << "No such file(s)" << endl;
         return 0;
     }
 
-    Module::getHomography(Src1, Src2);
+    std::cout << Module::getHomography(Src1, Src2) << std::endl;
 
-    Read::Data result = Read::readMeter(Src1);
+    cv::Mat Src3;
+
+    Init::input_images(1, 4, Src3);
+
+    Difference::readMeter(Src3);
+
+    Read::Data result = Read::readMeter(Src3);
+    //Read::readMeter(Src3);
+
     cv::waitKey();
 
     return 0;

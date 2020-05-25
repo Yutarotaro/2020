@@ -2,8 +2,11 @@ cmake_minimum_required(VERSION 3.1)
 project(MyOpenCVProject)
 SET( CMAKE_CXX_COMPILER /usr/bin/clang++ )
 # Copy resouce
-file(COPY ${CMAKE_SOURCE_DIR}/include/ DESTINATION ${PROJECT_BINARY_DIR}/include/)
+#file(COPY ${CMAKE_SOURCE_DIR}/include/ DESTINATION ${PROJECT_BINARY_DIR}/include/)
 
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_definitions(-DRESOURCE_DIR="${PROJECT_BINARY_DIR}/include/")
 add_definitions( -std=c++17 -Wall )
@@ -16,19 +19,14 @@ add_definitions( -std=c++17 -Wall )
 
 set(HEADERS
     # main.h
-  ${CMAKE_SOURCE_DIR}/include/module.hpp
-  ${CMAKE_SOURCE_DIR}/include/init.hpp
-  ${CMAKE_SOURCE_DIR}/include/mser.hpp
+    #  ${CMAKE_SOURCE_DIR}/include/module.hpp
+    #${CMAKE_SOURCE_DIR}/include/init.hpp
+    #${CMAKE_SOURCE_DIR}/include/mser.hpp
 )
 
 add_executable(main main.cpp)
 add_executable(test test.cpp)
-add_executable(test2 test2.cpp)
-
-#add_executable(Main
-#${SOURCES}
-#   ${HEADERS}
-#)
+add_executable(test2 test2.cpp include/read.cpp include/init.cpp include/difference.cpp)
 
 # Include directories for this project
 set(INCLUDE_DIR

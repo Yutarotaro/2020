@@ -1,6 +1,5 @@
 #include "include/init.hpp"
 #include "include/module.hpp"
-#include "include/mser.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <opencv2/core.hpp>
@@ -16,7 +15,6 @@ int main(int argc, char* argv[])
     if (argc == 3) {
         int a = argv[1][0] - '0';
         int b = argv[2][0] - '0';
-        //imread(format());っていうのがある！
         Init::input_images(a, b, img);
         //Module::circleDetect(img);
         Module::ellipseDetect(img);
