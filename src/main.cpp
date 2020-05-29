@@ -1,36 +1,33 @@
-#include "include/init.hpp"
-#include "include/module.hpp"
+#include "common/init.hpp"
+#include "opencv2/core.hpp"
+#include "opencv2/features2d.hpp"
+#include "opencv2/highgui.hpp"
+#include "opencv2/xfeatures2d.hpp"
+#include "pos/module.hpp"
+#include "read/difference.hpp"
+#include "read/read.hpp"
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
-#include <opencv2/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/opencv.hpp>
+#include <string>
+#include <vector>
 
-
-int main(int argc, char* argv[])
+int main(void)
 {
+    //pose estimation
+    cv::Mat Src1 = Init::input_images(1, 5);
+    cv::Mat Src2 = Init::input_images(1, 3);
 
-    cv::Mat img;
-    if (argc == 3) {
-        int a = argv[1][0] - '0';
-        int b = argv[2][0] - '0';
-        Init::input_images(a, b, img);
-        //Module::circleDetect(img);
-        Module::ellipseDetect(img);
-        //Module::showHSV(img);
-    }
-    //std::vector<cv::Mat> output = target(img);
+    //Src1, Src2間のHomographyを求める
+    cv::Mat H = Module::getHomography(Src1, Src2);
 
 
-    while (true) {
-        const int key = cv::waitKey(1);
-        if (key == 'q') {
-            break;
-        }
-    }
+    // read meter
+    cv::Mat Src3 = Init::input_images(1, 5);
 
-    cv::destroyAllWindows();
+    Difference::Lines(Src3, Module::circleDetect(Src3));
+
+    cv::waitKey();
 
     return 0;
 }

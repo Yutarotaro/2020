@@ -11,7 +11,7 @@
 
 namespace Init
 {
-int input_images(int a, int b, cv::Mat& image);
+cv::Mat input_images(int a, int b);
 void read_config();
 }  // namespace Init
 

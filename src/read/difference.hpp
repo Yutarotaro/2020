@@ -7,6 +7,7 @@
 namespace Difference
 {
 
+std::vector<cv::Vec2f> Lines(cv::Mat src, std::pair<cv::Point, int> circle);
 Read::Data readMeter(cv::Mat src);
 
 }  // namespace Difference

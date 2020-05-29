@@ -1,3 +1,4 @@
+#include "difference.hpp"
 #include "read.hpp"
 #include <iostream>
 #include <opencv2/opencv.hpp>
@@ -28,8 +29,6 @@ void lineDetect(cv::Mat src)
 
     cv::namedWindow("Detected Lines", 1);
     cv::imshow("Detected Lines", color_dst);
-
-    cv::waitKey(0);
 }
 
 
