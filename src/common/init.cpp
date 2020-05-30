@@ -6,9 +6,6 @@
 #include <sstream>
 #include <string>
 
-#define filepath1 "/Users/yutaro/research/2020/src"
-#define filepath2 "/Users/yutaro/research/2020/src/pictures/A"
-
 namespace Init
 {
 
@@ -22,7 +19,6 @@ int parseA(cv::Mat& A)
     cv::FileStorage fs(ostr.str(), cv::FileStorage::READ);
     if (!fs.isOpened()) {
         std::cerr << "File can not be opened." << std::endl;
-        return -1;
     }
 
     //first method: use operator on FileNode
@@ -41,11 +37,18 @@ int parseA(cv::Mat& A)
     return 0;
 }
 
-cv::Mat input_images(int a, int b)
+cv::Mat input_images(std::string s)
 {
     std::ostringstream ostr;
-    ostr << filepath2 << std::to_string(a) << "/pic" << std::to_string(b) << ".jpg";
-    cv::Mat image = cv::imread(ostr.str(), 1);
+    ostr << filepath1 << "/list.xml";
+    cv::FileStorage fs(ostr.str(), cv::FileStorage::READ);
+    if (!fs.isOpened()) {
+        std::cerr << "File can not be opened." << std::endl;
+    }
+
+    std::ostringstream ostr2;
+    ostr2 << filepath2 << std::to_string((int)fs[s][0]) << "/pic" << std::to_string((int)fs[s][1]) << ".jpg";
+    cv::Mat image = cv::imread(ostr2.str(), 1);
 
     return image;
 }

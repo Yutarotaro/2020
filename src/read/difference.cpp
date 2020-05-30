@@ -8,7 +8,7 @@
 namespace Difference
 {
 
-cv::Mat origin = Init::input_images(0, 2);
+cv::Mat origin = Init::input_images("origin");
 
 int sigma = 3;
 int ksize = (sigma * 5) | 1;

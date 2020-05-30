@@ -158,6 +158,7 @@ pose decomposeH(cv::Mat H, cv::Mat A)
         RT.at<double>(2, 1));
 
 
+    //TODO: lamdaをかける
     cv::Vec3f t = Vec3f(RT.at<double>(0, 2),
         RT.at<double>(1, 2),
         RT.at<double>(2, 2));
