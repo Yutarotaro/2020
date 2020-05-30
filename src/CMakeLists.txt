@@ -25,6 +25,10 @@ set(INCLUDE_DIR
 # Add a include files
 include_directories("${INCLUDE_DIR}")
 
+# For Eigen
+find_package( Eigen3 REQUIRED )
+include_directories(EIGEN3_INCLUDE_DIR)
+
 # For OpenCV
 find_package(OpenCV REQUIRED)
 if(OpenCV_FOUND)

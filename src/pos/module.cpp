@@ -3,9 +3,9 @@
 #include <opencv2/opencv.hpp>
 #include <utility>
 
-
 using namespace cv;
 using namespace std;
+
 
 namespace Module
 {
@@ -69,7 +69,6 @@ Mat getHomography(Mat Src1, Mat Src2)
     imshow("DrawMatch", drawmatch);
     imshow("Inliner", drawMatch_inliner);
 
-
     return H;
 }
 
@@ -78,11 +77,11 @@ std::pair<Point, int> circleDetect(cv::Mat img)
 {
     cv::Mat gray;
     //2値化
-    cvtColor(img, gray, COLOR_BGR2GRAY);
+    cv::cvtColor(img, gray, COLOR_BGR2GRAY);
     //平滑化
-    GaussianBlur(gray, gray, cv::Size(9, 9), 2, 2);
+    cv::GaussianBlur(gray, gray, cv::Size(9, 9), 2, 2);
 
-    vector<cv::Vec3f> circles;
+    std::vector<cv::Vec3f> circles;
     cv::HoughCircles(gray, circles, cv::HOUGH_GRADIENT,
         2, gray.rows / 4, 150, 100);
 
@@ -106,19 +105,18 @@ std::pair<Point, int> circleDetect(cv::Mat img)
     radius = tmp;
 
     // 円の中心を描画します．
-    circle(img, center, 3, Scalar(0, 255, 0), -1, 8, 0);
+    circle(img, center, 3, cv::Scalar(0, 255, 0), -1, 8, 0);
     // 円を描画します．
-    circle(img, center, radius, Scalar(0, 0, 255), 3, 8, 0);
+    circle(img, center, radius, cv::Scalar(0, 0, 255), 3, 8, 0);
 
-    namedWindow("circles", 1);
-    imshow("circles", img);
+    cv::namedWindow("circles", 1);
+    cv::imshow("circles", img);
 
     return {center, radius};
 }
 
-cv::Mat decompose()
+cv::Mat decomposeP(cv::Mat P)
 {
-    cv::Mat P;
     cv::Mat K(3, 3, cv::DataType<float>::type);  // intrinsic parameter matrix
     cv::Mat R(3, 3, cv::DataType<float>::type);  // rotation matrix
     cv::Mat T(4, 1, cv::DataType<float>::type);  // translation vector
@@ -130,6 +128,56 @@ cv::Mat decompose()
 */
 
     return P;
+}
+
+void normalize(cv::Vec3f& vec)
+{
+    float a = vec[0] * vec[0];
+    float b = vec[1] * vec[1];
+    float c = vec[2] * vec[2];
+
+    float norm = sqrt(a + b + c);
+
+    vec[0] /= norm;
+    vec[1] /= norm;
+    vec[2] /= norm;
+}
+
+pose decomposeH(cv::Mat H, cv::Mat A)
+{
+    //Flexible Camera Calibration By Viewing a Plane From Unknown Orientations Zhang に基づく
+
+    cv::Mat RT = A.inv() * H;
+
+
+    cv::Vec3f rVec1 = Vec3f(RT.at<double>(0, 0),
+        RT.at<double>(1, 0),
+        RT.at<double>(2, 0));
+    cv::Vec3f rVec2 = Vec3f(RT.at<double>(0, 1),
+        RT.at<double>(1, 1),
+        RT.at<double>(2, 1));
+
+
+    cv::Vec3f t = Vec3f(RT.at<double>(0, 2),
+        RT.at<double>(1, 2),
+        RT.at<double>(2, 2));
+
+    cv::Vec3f rVec3 = rVec1.cross(rVec2);
+
+    normalize(rVec1);
+    normalize(rVec2);
+    normalize(rVec3);
+
+    //cv::Mat m = (cv::Mat_<double>(3, 3) << 1, 0, 0, 0, 1, 0, 0, 0, 1);
+
+    cv::Mat R = (cv::Mat_<double>(3, 3) << rVec1[0], rVec1[1], rVec1[2],
+        rVec2[0], rVec2[1], rVec2[2],
+        rVec3[0], rVec3[1], rVec3[2]);
+
+    std::cout << R << std::endl;
+    std::cout << t << std::endl;
+
+    return {R, t};
 }
 
 
