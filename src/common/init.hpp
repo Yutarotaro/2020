@@ -10,7 +10,7 @@
 
 namespace Init
 {
-int parseA(cv::Mat& A);
+int parseInit();
 cv::Mat input_images(std::string s);
 void read_config();
 }  // namespace Init

@@ -19,6 +19,7 @@ struct pose {
     cv::Vec3f t;
 };
 
+void reconstructH(cv::Mat H, cv::Mat A);
 pose decomposeH(cv::Mat H, cv::Mat A);
 
 }  // namespace Module

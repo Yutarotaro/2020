@@ -1,4 +1,5 @@
 #include "module.hpp"
+#include "opencv2/calib3d.hpp"
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <utility>
@@ -66,53 +67,10 @@ Mat getHomography(Mat Src1, Mat Src2)
     cv::drawMatches(Src1, keypoints1, Src2, keypoints2, inlinerMatch, drawMatch_inliner);
     imwrite("../output/match_inliner.jpg", drawMatch_inliner);
 
-    imshow("DrawMatch", drawmatch);
+    //    imshow("DrawMatch", drawmatch);
     imshow("Inliner", drawMatch_inliner);
 
     return H;
-}
-
-
-std::pair<Point, int> circleDetect(cv::Mat img)
-{
-    cv::Mat gray;
-    //2値化
-    cv::cvtColor(img, gray, COLOR_BGR2GRAY);
-    //平滑化
-    cv::GaussianBlur(gray, gray, cv::Size(9, 9), 2, 2);
-
-    std::vector<cv::Vec3f> circles;
-    cv::HoughCircles(gray, circles, cv::HOUGH_GRADIENT,
-        2, gray.rows / 4, 150, 100);
-
-    // int C_x = gray.rows / 2;
-    //int C_y = gray.cols / 2;
-
-    int tmp = 0;
-    int index = -1;
-    int radius;
-
-    for (size_t i = 0; i < circles.size(); i++) {
-        radius = cvRound(circles[i][2]);
-        //暫定: 検出された円のうち最も半径の大きいものをメータとみなす
-        if (radius > tmp) {
-            tmp = radius;
-            index = i;
-        }
-    }
-
-    cv::Point center(cvRound(circles[index][0]), cvRound(circles[index][1]));
-    radius = tmp;
-
-    // 円の中心を描画します．
-    circle(img, center, 3, cv::Scalar(0, 255, 0), -1, 8, 0);
-    // 円を描画します．
-    circle(img, center, radius, cv::Scalar(0, 0, 255), 3, 8, 0);
-
-    cv::namedWindow("circles", 1);
-    cv::imshow("circles", img);
-
-    return {center, radius};
 }
 
 cv::Mat decomposeP(cv::Mat P)
@@ -130,6 +88,34 @@ cv::Mat decomposeP(cv::Mat P)
     return P;
 }
 
+void reconstructH(cv::Mat H, cv::Mat A)
+{
+    //https://docs.opencv.org/master/de/d45/samples_2cpp_2tutorial_code_2features2D_2Homography_2decompose_homography_8cpp-example.html#a20
+
+    cv::Mat normal = (cv::Mat_<double>(3, 1) << 0, 0, 1);
+    //double d_inv1 = 1.0 / normal1.dot(origin1);
+
+    std::vector<cv::Mat> Rs_decomp, ts_decomp, normals_decomp;
+
+    //solutionsの個数が解の個数(それはそう)
+    int solutions = cv::decomposeHomographyMat(H, A, Rs_decomp, ts_decomp, normals_decomp);
+    std::cout << "Decompose homography matrix estimated by findHomography():" << std::endl
+              << std::endl;
+
+    for (int i = 0; i < solutions; i++) {
+        //        double factor_d1 = 1.0 / d_inv1;
+        double factor_d1 = 1.0;
+        cv::Mat rvec_decomp;
+        cv::Rodrigues(Rs_decomp[i], rvec_decomp);
+        std::cout << "Solution " << i << ":" << std::endl;
+        std::cout << "rvec from homography decomposition: " << rvec_decomp.t() << std::endl;
+        std::cout << "tvec from homography decomposition: " << ts_decomp[i].t() << " and scaled by d: " << factor_d1 * ts_decomp[i].t() << std::endl;
+        std::cout << "plane normal from homography decomposition: " << normals_decomp[i].t() << std::endl
+                  << std::endl;
+    }
+}
+
+
 void normalize(cv::Vec3f& vec)
 {
     float a = vec[0] * vec[0];
@@ -145,6 +131,9 @@ void normalize(cv::Vec3f& vec)
 
 pose decomposeH(cv::Mat H, cv::Mat A)
 {
+    //画面座標とワールド座標をつなぐhomography
+
+
     //Flexible Camera Calibration By Viewing a Plane From Unknown Orientations Zhang に基づく
 
     cv::Mat RT = A.inv() * H;
