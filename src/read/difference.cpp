@@ -80,7 +80,7 @@ double dist(cv::Point x, cv::Point y)
     return sqrt(pow(x.x - y.x, 2) + pow(y.x - y.y, 2));
 }
 
-void Lines(cv::Mat src, std::pair<cv::Point, int> circle, double& m)
+void Lines(cv::Mat src, std::pair<cv::Point, int> circle, std::pair<double, int>& m)
 {
     cv::Mat dst, color_dst;
 
@@ -122,14 +122,17 @@ void Lines(cv::Mat src, std::pair<cv::Point, int> circle, double& m)
     }
 
     //TODO; 2本の直線の傾きの平均をとってスケールから値に変換
-    double a[2];
+    std::pair<int, int> a[2];
+
     for (int i = 0; i < 2; i++) {
         auto p = lines[i];
-        a[i] = -(double)(p[1] - p[3]) / (p[0] - p[2]);
-        std::cout << a[i] << std::endl;
+        a[i].first = p[0] - p[2];   //x
+        a[i].second = p[1] - p[3];  //y
     }
 
-    m = (a[0] + a[1]) / 2.;
+    m.first = std::atan(double(a[0].second + a[1].second) / (a[0].first + a[1].first));
+    int n = a[0].second + a[1].second;
+    m.second = (n > 0) - (n < 0);
 
 #endif
 
@@ -146,8 +149,6 @@ Read::Data readMeter(cv::Mat src)
     //TODO:検出円を囲む正方形領域をcv::Rectでトリミング
     std::pair<cv::Point, int> circle = circleDetect(src);
 
-    //TODO:本番メータでのテンプレート画像のメータの大きさcalibration
-
 
     //メーター部分のトリミング
     cv::Rect roi(cv::Point(circle.first.x - circle.second, circle.first.y - circle.second), cv::Size(2 * circle.second, 2 * circle.second));
@@ -158,10 +159,27 @@ Read::Data readMeter(cv::Mat src)
 
     //cv::Mat sub_thre = thresh(subImg);
 
-    double m;
+    std::pair<double, int> m;
     Lines(subImg, circle, m);
-    std::cout << "傾きは" << m << std::endl;
+    std::cout << "角度は" << m.first << std::endl;
+    std::cout << "符号は" << m.second << std::endl;
 
+    double value;
+    int n = m.second;
+    double offset = 3.712;
+
+    if (n > 0) {
+        value = 100. + 40. * 2. * m.first / CV_PI;
+    } else if (n < 0) {
+        value = 20. + 40. * 2. * m.first / CV_PI;
+    } else {
+        value = 60.;
+    }
+
+    //value += offset;
+
+
+    std::cout << "value = " << value << std::endl;
 
     /*
     double dsize = (double)circle.second / ;
