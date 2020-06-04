@@ -25,7 +25,7 @@ std::pair<cv::Point, int> circleDetect(cv::Mat img)
 
     std::vector<cv::Vec3f> circles;
     cv::HoughCircles(gray, circles, cv::HOUGH_GRADIENT,
-        2, gray.rows / 4, 150, 100);
+        2, gray.rows / 4, 150, 100, fmin(gray.rows, gray.cols) / 16, fmin(gray.rows, gray.cols) / 2);
 
     int C_x = gray.rows / 2;
     int C_y = gray.cols / 2;
@@ -41,8 +41,18 @@ std::pair<cv::Point, int> circleDetect(cv::Mat img)
         int x = cvRound(circles[i][0]);
         int y = cvRound(circles[i][1]);
 
+        if (x - radius <= 0 || x + radius >= gray.cols || y - radius <= 0 || y + radius >= gray.rows) {
+            continue;
+        }
+
+        int color_tmp = 0;
+        //テンプレートとの比較
+        //origin: テンプレート画像
+
+
         double a = 0;
 
+        //目的関数。これが最も大きいものを選びたい。
         double bijiao = -(C_x - x) * (C_x - x) * a - (C_y - y) * (C_y - y) * a + radius * radius;
 
         if (bijiao > tmp) {
@@ -50,6 +60,14 @@ std::pair<cv::Point, int> circleDetect(cv::Mat img)
             index = i;
         }
     }
+
+    if (index == -1) {
+        std::cout << "cannot find a good circle" << std::endl;
+    } else {
+        std::cout << index << std::endl;
+    }
+
+    index = 1;
 
     cv::Point center(cvRound(circles[index][0]), cvRound(circles[index][1]));
     radius = cvRound(circles[index][2]);
@@ -62,6 +80,7 @@ std::pair<cv::Point, int> circleDetect(cv::Mat img)
     cv::namedWindow("circles", 1);
     cv::imshow("circles", img);
 
+    cv::waitKey();
     return {center, radius};
 }
 
@@ -80,6 +99,10 @@ double dist(cv::Point x, cv::Point y)
     return sqrt(pow(x.x - y.x, 2) + pow(y.x - y.y, 2));
 }
 
+void binary_search()
+{
+}
+
 void Lines(cv::Mat src, std::pair<cv::Point, int> circle, std::pair<double, int>& m)
 {
     cv::Mat dst, color_dst;
@@ -88,7 +111,8 @@ void Lines(cv::Mat src, std::pair<cv::Point, int> circle, std::pair<double, int>
     cv::Canny(src, dst, 50, 200, 3);
     cv::cvtColor(dst, color_dst, CV_GRAY2BGR);
 
-    int toupiao = 155;
+    //int toupiao = 155;  //これより投票数が多いもののみが採用される
+    //int toupiao = 125;  //これより投票数が多いもののみが採用される
 
 #if 0
     std::vector<cv::Vec2f> lines;
@@ -107,21 +131,40 @@ void Lines(cv::Mat src, std::pair<cv::Point, int> circle, std::pair<double, int>
     }
 #else
     //確率ハフ変換による直線検出
+
+    int l = 0;
+    int r = 200;
+
     std::vector<cv::Vec4i> lines;
-    cv::HoughLinesP(dst, lines, 1, CV_PI / 180, toupiao, 30, 40);
-    std::cout << lines.size() << std::endl;
-    for (size_t i = 0; i < lines.size(); i++) {
+    int ct = 0;
+    while (true) {
+        ct++;
+        int toupiao = (l + r) / 2;
+        cv::HoughLinesP(dst, lines, 1, CV_PI / 180, toupiao, 30, 40);
 
-        cv::line(color_dst, cv::Point(lines[i][0], lines[i][1]),
-            cv::Point(lines[i][2], lines[i][3]), cv::Scalar(0, 0, cvRound(255 * (i + 1) / double(lines.size()))), 3, 8);
+        //std::cout << ct << toupiao << std::endl;
+
+        if (lines.size() == 2) {
+            for (size_t i = 0; i < lines.size(); i++) {
+                cv::line(color_dst, cv::Point(lines[i][0], lines[i][1]), cv::Point(lines[i][2], lines[i][3]), cv::Scalar(0, 0, cvRound(255 * (i + 1) / double(lines.size()))), 3, 8);
+            }
+            std::cout << lines.size() << std::endl;
+            std::cout << ct << ' ' << toupiao << std::endl;
+            break;
+        } else if (lines.size() > 2) {
+            l = toupiao;
+        } else {
+            r = toupiao;
+        }
+
+        std::cout << toupiao << std::endl;
+
+        if (l == r) {
+            std::cout << "cannot" << std::endl;
+            return;
+        }
     }
-
-    if (lines.size() != 2) {
-        std::cout << "検出された直線が2本ではない" << std::endl;
-        return;
-    }
-
-    //TODO; 2本の直線の傾きの平均をとってスケールから値に変換
+    //2本の直線のベクトルの平均をとってスケールから値に変換
     std::pair<int, int> a[2];
 
     for (int i = 0; i < 2; i++) {
@@ -132,13 +175,14 @@ void Lines(cv::Mat src, std::pair<cv::Point, int> circle, std::pair<double, int>
 
     m.first = std::atan(double(a[0].second + a[1].second) / (a[0].first + a[1].first));
     int n = a[0].second + a[1].second;
+    //x成分の符号
     m.second = (n > 0) - (n < 0);
 
 #endif
 
     imshow("1", color_dst);
 
-    cv::imwrite("output.jpg", color_dst);
+    //cv::imwrite("output.jpg", color_dst);
 
 }  // namespace Difference
 

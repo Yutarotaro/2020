@@ -25,7 +25,7 @@ int main(void)
     //parameter
     Init::parseInit();
 
-
+    //TODO:homography分解によって複数の解が得られるので１つに絞りpose estimation
     while (false) {
         //Pose estimation
         cv::Mat Base = Init::input_images("Src1");
@@ -35,7 +35,7 @@ int main(void)
         cv::Mat H = Module::getHomography(Base, Now);
         std::cout << "Homography: \n"
                   << H << std::endl;
-        //この時点でHomographyは正規化されてる(h33=1)
+        //この時点でHomographyは正規化されてる(h_{33}=1)
 
         Module::reconstructH(H, A);
 
@@ -43,14 +43,10 @@ int main(void)
         //<< "メータの: " << R + Homography.R << std::endl;
     }
 
+
     // read meter
     cv::Mat Src3 = Init::input_images("Src3");
-    cv::imshow("Src3", Src3);
-
     Difference::readMeter(Src3);
-
-    //    Difference::Lines(Src3, Module::circleDetect(Src3));
-
 
     cv::waitKey();
     return 0;
