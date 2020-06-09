@@ -14,9 +14,9 @@
 #include <vector>
 
 
-cv::Mat A;    //カメラ行列
-cv::Vec3f R;  //初期姿勢
-cv::Vec3f t;  //初期位置
+cv::Mat A;  //カメラ行列
+cv::Mat R;  //基準姿勢
+cv::Mat t;  //基準位置
 
 //メータの位置をワールド座標の原点とする
 
@@ -26,28 +26,26 @@ int main(void)
     Init::parseInit();
 
     //TODO:homography分解によって複数の解が得られるので１つに絞りpose estimation
-    while (false) {
-        //Pose estimation
-        cv::Mat Base = Init::input_images("Src1");
-        cv::Mat Now = Init::input_images("now");
 
 
-        cv::Mat H = Module::getHomography(Base, Now);
-        std::cout << "Homography: \n"
-                  << H << std::endl;
-        //この時点でHomographyは正規化されてる(h_{33}=1)
+#if 0
+    //Pose estimation
+    cv::Mat Base = Init::input_images("Src1");
+    cv::Mat Now = Init::input_images("now");
 
-        Module::reconstructH(H, A);
 
-        //std::cout << "メータの位置: " << ts_decomp << std::endl;
-        //<< "メータの: " << R + Homography.R << std::endl;
-    }
+    auto [rot, tra] = Module::decomposeHomography(Module::getHomography(Base, Now), A);
 
+    //    cv::Mat estimated_pose = rot * t + tra;
+
+    //   std::cout << estimated_pose << std::endl;
+#else
 
     // read meter
-    cv::Mat Src3 = Init::input_images("Src3");
+    cv::Mat Src3 = Init::input_images("target");
     Difference::readMeter(Src3);
 
     cv::waitKey();
+#endif
     return 0;
 }

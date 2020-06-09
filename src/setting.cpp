@@ -24,7 +24,8 @@ using namespace std;
 #define PAT_COL (10)   /* パターンの列数 */
 #define PAT_SIZE (PAT_ROW * PAT_COL)
 #define ALL_POINTS (IMAGE_NUM * PAT_SIZE)
-#define CHESS_SIZE (23.0) /* パターン1マスの1辺サイズ[mm] */
+#define CHESS_SIZE (2700. * 1.6 / 23.8) /* パターン1マスの1辺サイズ[mm] */
+//#define CHESS_SIZE (50) /* パターン1マスの1辺サイズ[mm] */
 
 int main(int argc, char* argv[])
 {
@@ -40,7 +41,9 @@ int main(int argc, char* argv[])
     // (1)キャリブレーション画像の読み込み
     for (i = 0; i < IMAGE_NUM; i++) {
         ostringstream ostr;
-        ostr << filepath << "/calib_img/IMG_47" << i + 42 << ".JPG";
+        //チェスボード写真のpath
+        //ostr << filepath << "/pictures/calib_img/IMG_47" << i + 42 << ".JPG";
+        ostr << filepath << "/pictures/calib_img/calib" << i << ".png";
         cv::Mat src = cv::imread(ostr.str(), 1);
         if (src.empty()) {
             cerr << "cannot load image file : " << ostr.str() << endl;
@@ -91,7 +94,7 @@ int main(int argc, char* argv[])
         img_points.push_back(corners);
 
         cv::imshow("Calibration", srcImages[i]);
-        cv::waitKey(2);
+        cv::waitKey(1);
     }
     cv::destroyWindow("Calibration");
 

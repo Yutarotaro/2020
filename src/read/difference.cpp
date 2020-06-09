@@ -10,10 +10,7 @@ namespace Difference
 
 cv::Mat origin = Init::input_images("pointer");
 
-int sigma = 3;
-int ksize = (sigma * 5) | 1;
 int thre = 160;
-
 
 std::pair<cv::Point, int> circleDetect(cv::Mat img)
 {
@@ -33,11 +30,13 @@ std::pair<cv::Point, int> circleDetect(cv::Mat img)
     double tmp = -1e9;
     int index = -1;
     int radius;
+    bool flag = false;
 
 
     for (size_t i = 0; i < circles.size(); i++) {
         radius = cvRound(circles[i][2]);
         //暫定: 検出された円のうち最も半径の大きいものをメータとみなす
+        //TODO: メータの画像から特徴量抽出のような何か
         int x = cvRound(circles[i][0]);
         int y = cvRound(circles[i][1]);
 
@@ -45,12 +44,28 @@ std::pair<cv::Point, int> circleDetect(cv::Mat img)
             continue;
         }
 
+#if 0
+        std::cout << i << std::endl;
+        cv::Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+        radius = cvRound(circles[i][2]);
+
+        // 円の中心を描画します．
+        circle(img, center, 3, cv::Scalar(0, 255, 0), -1, 8, 0);
+        // 円を描画します．
+        circle(img, center, radius, cv::Scalar(0, 0, 255), 3, 8, 0);
+
+        cv::imshow("circles", img);
+
+        cv::waitKey();
+        flag = true;
+#else
+
+#endif
+
         int color_tmp = 0;
-        //テンプレートとの比較
-        //origin: テンプレート画像
 
 
-        double a = 0;
+        double a = 0;  //下の目的関数の中心からのずれの2乗の係数
 
         //目的関数。これが最も大きいものを選びたい。
         double bijiao = -(C_x - x) * (C_x - x) * a - (C_y - y) * (C_y - y) * a + radius * radius;
@@ -61,13 +76,19 @@ std::pair<cv::Point, int> circleDetect(cv::Mat img)
         }
     }
 
+    index = 0;
+
+    if (flag) {
+        index = cv::waitKey(100) + 1;
+        std::cout << index << std::endl;
+    }
+
     if (index == -1) {
         std::cout << "cannot find a good circle" << std::endl;
     } else {
         std::cout << index << std::endl;
     }
 
-    index = 1;
 
     cv::Point center(cvRound(circles[index][0]), cvRound(circles[index][1]));
     radius = cvRound(circles[index][2]);
@@ -79,6 +100,7 @@ std::pair<cv::Point, int> circleDetect(cv::Mat img)
 
     cv::namedWindow("circles", 1);
     cv::imshow("circles", img);
+    cv::imwrite("circle.jpg", img);
 
     cv::waitKey();
     return {center, radius};
@@ -88,8 +110,6 @@ cv::Mat thresh(cv::Mat image)
 {
     cv::cvtColor(image, image, CV_BGR2GRAY);
 
-    //cv::GaussianBlur(image, image, cv::Size(ksize, ksize), sigma, sigma);
-    //cv::adaptiveThreshold(image, image, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 5, 0);
     cv::threshold(image, image, thre /*cv::THRESH_OTSU*/, 255, cv::THRESH_BINARY_INV);
     return image;
 }
@@ -133,7 +153,7 @@ void Lines(cv::Mat src, std::pair<cv::Point, int> circle, std::pair<double, int>
     //確率ハフ変換による直線検出
 
     int l = 0;
-    int r = 200;
+    int r = 300;
 
     std::vector<cv::Vec4i> lines;
     int ct = 0;
@@ -159,7 +179,7 @@ void Lines(cv::Mat src, std::pair<cv::Point, int> circle, std::pair<double, int>
 
         std::cout << toupiao << std::endl;
 
-        if (l == r) {
+        if (r - l == 1) {
             std::cout << "cannot" << std::endl;
             return;
         }
@@ -182,7 +202,7 @@ void Lines(cv::Mat src, std::pair<cv::Point, int> circle, std::pair<double, int>
 
     imshow("1", color_dst);
 
-    //cv::imwrite("output.jpg", color_dst);
+    cv::imwrite("output2.jpg", color_dst);
 
 }  // namespace Difference
 
@@ -200,6 +220,7 @@ Read::Data readMeter(cv::Mat src)
 
 
     cv::imshow("trimming", subImg);
+    cv::imwrite("detect.jpg", subImg);
 
     //cv::Mat sub_thre = thresh(subImg);
 

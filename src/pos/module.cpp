@@ -8,6 +8,10 @@ using namespace cv;
 using namespace std;
 
 
+extern cv::Mat A;
+extern cv::Mat R;
+extern cv::Mat t;
+
 namespace Module
 {
 
@@ -60,40 +64,42 @@ Mat getHomography(Mat Src1, Mat Src2)
     //対応点の表示
     cv::Mat drawmatch;
     cv::drawMatches(Src1, keypoints1, Src2, keypoints2, goodMatch, drawmatch);
-    imwrite("../output/match_point.jpg", drawmatch);
+    //    imwrite("../output/match_point.jpg", drawmatch);
 
     //インライアの対応点のみ表示
     cv::Mat drawMatch_inliner;
     cv::drawMatches(Src1, keypoints1, Src2, keypoints2, inlinerMatch, drawMatch_inliner);
-    imwrite("../output/match_inliner.jpg", drawMatch_inliner);
+    //imwrite("../output/match_inliner.jpg", drawMatch_inliner);
 
     //    imshow("DrawMatch", drawmatch);
+#if 1
     imshow("Inliner", drawMatch_inliner);
-
+    imwrite("./match_inliner.jpg", drawMatch_inliner);
+    cv::waitKey();
+#else
+#endif
     return H;
 }
 
-cv::Mat decomposeP(cv::Mat P)
-{
-    cv::Mat K(3, 3, cv::DataType<float>::type);  // intrinsic parameter matrix
-    cv::Mat R(3, 3, cv::DataType<float>::type);  // rotation matrix
-    cv::Mat T(4, 1, cv::DataType<float>::type);  // translation vector
-
-    /*cv::decomposeProjectionMatrix(P, K, R, T);
-
-    std::cout << R << std::endl
-              << T << std::endl;
-*/
-
-    return P;
-}
-
-void reconstructH(cv::Mat H, cv::Mat A)
+pose decomposeHomography(cv::Mat H, cv::Mat A)
 {
     //https://docs.opencv.org/master/de/d45/samples_2cpp_2tutorial_code_2features2D_2Homography_2decompose_homography_8cpp-example.html#a20
 
-    cv::Mat normal = (cv::Mat_<double>(3, 1) << 0, 0, 1);
-    //double d_inv1 = 1.0 / normal1.dot(origin1);
+    cv::Mat R1 = R;
+    cv::Mat rvec1;
+    cv::Rodrigues(R1, rvec1);
+
+    //並進ベクトルの初期値
+    //TODO:.xmlからの読み取り
+    cv::Mat tvec1 = t;
+
+
+    cv::Mat normal = (cv::Mat_<double>(3, 1) << 1, 1, 1);
+    cv::Mat normal1 = R1 * normal;
+
+    Mat origin(3, 1, CV_64F, Scalar(0));
+    Mat origin1 = R1 * origin + tvec1;
+    double d_inv1 = 1.0 / normal1.dot(origin1);
 
     std::vector<cv::Mat> Rs_decomp, ts_decomp, normals_decomp;
 
@@ -103,72 +109,22 @@ void reconstructH(cv::Mat H, cv::Mat A)
               << std::endl;
 
     for (int i = 0; i < solutions; i++) {
-        //        double factor_d1 = 1.0 / d_inv1;
-        double factor_d1 = 1.0;
+        double factor_d1 = 1.0 / d_inv1;
         cv::Mat rvec_decomp;
         cv::Rodrigues(Rs_decomp[i], rvec_decomp);
         std::cout << "Solution " << i << ":" << std::endl;
         std::cout << "rvec from homography decomposition: " << rvec_decomp.t() << std::endl;
-        std::cout << "tvec from homography decomposition: " << ts_decomp[i].t() << " and scaled by d: " << factor_d1 * ts_decomp[i].t() << std::endl;
+        std::cout << "tvec from homography decomposition: \n"
+                  << ts_decomp[i].t() << " \n scaled by d:\n " << factor_d1 * ts_decomp[i].t() << std::endl
+                  << std::endl;
         std::cout << "plane normal from homography decomposition: " << normals_decomp[i].t() << std::endl
                   << std::endl;
+
+        cv::Mat estimated_pose = Rs_decomp[i] * t + ts_decomp[i];
+
+        std::cout << estimated_pose << std::endl;
     }
+
+    return {Rs_decomp[0], ts_decomp[0]};
 }
-
-
-void normalize(cv::Vec3f& vec)
-{
-    float a = vec[0] * vec[0];
-    float b = vec[1] * vec[1];
-    float c = vec[2] * vec[2];
-
-    float norm = sqrt(a + b + c);
-
-    vec[0] /= norm;
-    vec[1] /= norm;
-    vec[2] /= norm;
-}
-
-pose decomposeH(cv::Mat H, cv::Mat A)
-{
-    //画面座標とワールド座標をつなぐhomography
-
-
-    //Flexible Camera Calibration By Viewing a Plane From Unknown Orientations Zhang に基づく
-
-    cv::Mat RT = A.inv() * H;
-
-
-    cv::Vec3f rVec1 = Vec3f(RT.at<double>(0, 0),
-        RT.at<double>(1, 0),
-        RT.at<double>(2, 0));
-    cv::Vec3f rVec2 = Vec3f(RT.at<double>(0, 1),
-        RT.at<double>(1, 1),
-        RT.at<double>(2, 1));
-
-
-    //TODO: lamdaをかける
-    cv::Vec3f t = Vec3f(RT.at<double>(0, 2),
-        RT.at<double>(1, 2),
-        RT.at<double>(2, 2));
-
-    cv::Vec3f rVec3 = rVec1.cross(rVec2);
-
-    normalize(rVec1);
-    normalize(rVec2);
-    normalize(rVec3);
-
-    //cv::Mat m = (cv::Mat_<double>(3, 3) << 1, 0, 0, 0, 1, 0, 0, 0, 1);
-
-    cv::Mat R = (cv::Mat_<double>(3, 3) << rVec1[0], rVec1[1], rVec1[2],
-        rVec2[0], rVec2[1], rVec2[2],
-        rVec3[0], rVec3[1], rVec3[2]);
-
-    std::cout << R << std::endl;
-    std::cout << t << std::endl;
-
-    return {R, t};
-}
-
-
 }  // namespace Module

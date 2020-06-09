@@ -8,19 +8,14 @@
 namespace Module
 {
 
+struct pose {
+    cv::Mat rot;
+    cv::Mat tra;
+};
 cv::Mat getHomography(cv::Mat Src1, cv::Mat Src2);
 
-std::pair<cv::Point, int> circleDetect(cv::Mat img);
+pose decomposeHomography(cv::Mat H, cv::Mat A);
 
-cv::Mat decomposeP(cv::Mat P);
-
-struct pose {
-    cv::Mat R;
-    cv::Vec3f t;
-};
-
-void reconstructH(cv::Mat H, cv::Mat A);
-pose decomposeH(cv::Mat H, cv::Mat A);
 
 }  // namespace Module
 

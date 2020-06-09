@@ -12,6 +12,7 @@ add_definitions(-DRESOURCE_DIR="${PROJECT_BINARY_DIR}/include/")
 add_definitions( -std=c++17 -Wall )
 
 add_executable(main main.cpp pos/module.cpp read/read.cpp read/difference.cpp common/init.cpp)
+add_executable(test test.cpp pos/module.cpp read/read.cpp read/difference.cpp common/init.cpp)
 add_executable(setting setting.cpp)
 
 # Include directories for this project
@@ -34,6 +35,8 @@ find_package(OpenCV REQUIRED)
 if(OpenCV_FOUND)
     target_include_directories(main PUBLIC ${OpenCV_INCLUDE_DIRS})
     target_link_libraries(main ${OpenCV_LIBS})
+    target_include_directories(test PUBLIC ${OpenCV_INCLUDE_DIRS})
+    target_link_libraries(test ${OpenCV_LIBS})
     target_include_directories(setting PUBLIC ${OpenCV_INCLUDE_DIRS})
     target_link_libraries(setting ${OpenCV_LIBS})
 endif()

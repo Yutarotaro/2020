@@ -7,14 +7,15 @@
 #include <string>
 
 extern cv::Mat A;
-extern cv::Vec3f R;
-extern cv::Vec3f t;
+extern cv::Mat R;
+extern cv::Mat t;
 
 namespace Init
 {
 
 int parseInit()
 {
+#if 1
     std::ostringstream ostr;
     ostr << filepath1 << "/build/camera.xml";
 
@@ -30,6 +31,12 @@ int parseInit()
     fs["intrinsic"] >> A;
     fs["distortion"] >> distCoef;
 
+#else
+    //カメラ行列
+
+    A = (cv::Mat_<double>(3, 3) <<, 0, 0, 0, , 0, 0, 0, 1);
+
+#endif
     /*TODO: .xmlからの配列の読み取り 6/1
     std::ostringstream ostr2;
     ostr2 << filepath1 << "/list.xml";
@@ -54,8 +61,9 @@ int parseInit()
         std::cout << 1 << std::endl;
     }
 */
-    R = {90, 0, 0};
-    t = {0, -30, 4.9583};
+
+    R = (cv::Mat_<double>(3, 3) << 1., 0., 0., 0., 0., 1., 0., -1, 0.);
+    t = (cv::Mat_<double>(3, 1) << 0., -30000, 4958.3);
 
     return 0;
 }  // namespace Init
