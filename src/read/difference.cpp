@@ -1,6 +1,5 @@
 #include "../common/init.hpp"
 #include "difference.hpp"
-#include "read.hpp"
 #include <opencv2/opencv.hpp>
 #include <utility>
 #include <vector>
@@ -32,6 +31,8 @@ std::pair<cv::Point, int> circleDetect(cv::Mat img)
     int radius;
     bool flag = false;
 
+    std::cout << circles.size() << std::endl;
+
 
     for (size_t i = 0; i < circles.size(); i++) {
         radius = cvRound(circles[i][2]);
@@ -44,7 +45,7 @@ std::pair<cv::Point, int> circleDetect(cv::Mat img)
             continue;
         }
 
-#if 0
+#if 1
         std::cout << i << std::endl;
         cv::Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
         radius = cvRound(circles[i][2]);
@@ -108,7 +109,7 @@ std::pair<cv::Point, int> circleDetect(cv::Mat img)
 
 cv::Mat thresh(cv::Mat image)
 {
-    cv::cvtColor(image, image, CV_BGR2GRAY);
+    cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);
 
     cv::threshold(image, image, thre /*cv::THRESH_OTSU*/, 255, cv::THRESH_BINARY_INV);
     return image;
@@ -123,13 +124,22 @@ void binary_search()
 {
 }
 
+void norm(std::pair<double, double>& x)
+{
+    double nor = std::sqrt(x.first * x.first + x.second * x.second);
+
+
+    x.first /= nor;
+    x.second /= nor;
+}
+
 void Lines(cv::Mat src, std::pair<cv::Point, int> circle, std::pair<double, int>& m)
 {
     cv::Mat dst, color_dst;
 
 
     cv::Canny(src, dst, 50, 200, 3);
-    cv::cvtColor(dst, color_dst, CV_GRAY2BGR);
+    cv::cvtColor(dst, color_dst, cv::COLOR_GRAY2BGR);
 
     //int toupiao = 155;  //これより投票数が多いもののみが採用される
     //int toupiao = 125;  //これより投票数が多いもののみが採用される
@@ -185,7 +195,7 @@ void Lines(cv::Mat src, std::pair<cv::Point, int> circle, std::pair<double, int>
         }
     }
     //2本の直線のベクトルの平均をとってスケールから値に変換
-    std::pair<int, int> a[2];
+    std::pair<double, double> a[2];
 
     for (int i = 0; i < 2; i++) {
         auto p = lines[i];
@@ -193,8 +203,14 @@ void Lines(cv::Mat src, std::pair<cv::Point, int> circle, std::pair<double, int>
         a[i].second = p[1] - p[3];  //y
     }
 
+    norm(a[0]);
+    norm(a[1]);
+
+
     m.first = std::atan(double(a[0].second + a[1].second) / (a[0].first + a[1].first));
-    int n = a[0].second + a[1].second;
+    double n = a[0].second + a[1].second;
+    double ny = a[0].first + a[1].first;
+    std::cout << n << ' ' << ny << std::endl;
     //x成分の符号
     m.second = (n > 0) - (n < 0);
 
@@ -206,9 +222,9 @@ void Lines(cv::Mat src, std::pair<cv::Point, int> circle, std::pair<double, int>
 
 }  // namespace Difference
 
-Read::Data readMeter(cv::Mat src)
+Data readMeter(cv::Mat src)
 {
-    Read::Data ret = {0, 0};
+    Data ret = {0, 0};
 
     //TODO:検出円を囲む正方形領域をcv::Rectでトリミング
     std::pair<cv::Point, int> circle = circleDetect(src);
@@ -232,13 +248,17 @@ Read::Data readMeter(cv::Mat src)
     double value;
     int n = m.second;
     double offset = 3.712;
+    double min_value = -0.1;
+    double max_value = 0;
 
     if (n > 0) {
+        //右半分
         value = 100. + 40. * 2. * m.first / CV_PI;
     } else if (n < 0) {
+        //左半分
         value = 20. + 40. * 2. * m.first / CV_PI;
     } else {
-        value = 60.;
+        value = -0.05;
     }
 
     //value += offset;

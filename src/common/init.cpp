@@ -9,13 +9,13 @@
 extern cv::Mat A;
 extern cv::Mat R;
 extern cv::Mat t;
+extern cv::Mat pos;
 
 namespace Init
 {
 
 int parseInit()
 {
-#if 1
     std::ostringstream ostr;
     ostr << filepath1 << "/build/camera.xml";
 
@@ -31,44 +31,38 @@ int parseInit()
     fs["intrinsic"] >> A;
     fs["distortion"] >> distCoef;
 
-#else
-    //カメラ行列
+    //TODO: .xmlからの配列の読み取り 6/1
 
-    A = (cv::Mat_<double>(3, 3) <<, 0, 0, 0, , 0, 0, 0, 1);
 
-#endif
-    /*TODO: .xmlからの配列の読み取り 6/1
     std::ostringstream ostr2;
     ostr2 << filepath1 << "/list.xml";
 
-    //[ref] https://qiita.com/wakaba130/items/3ce8d8668d0a698c7e1b
 
-    cv::FileStorage fs2(ostr.str(), cv::FileStorage::READ);
+    cv::FileStorage fs2(ostr2.str(), cv::FileStorage::READ);
     if (!fs2.isOpened()) {
-        std::cerr << "list.xml can not be opened." << std::endl;
+        std::cerr << "File can not be opened." << std::endl;
     }
 
-    auto tmp = fs2["R"];
+    fs2["R"] >> R;
+    fs2["pos"] >> pos;
 
-    for (int i = 0; i < 3; i++) {
-        R[i] = tmp[i];
-    }
-
-    cv::FileNode n = fs2["t"];
-    cv::FileNodeIterator it = n.begin(), it_end = n.end();  // Go through the node
-    for (; it != it_end; ++it) {
-        std::cout << *it << std::endl;
-        std::cout << 1 << std::endl;
-    }
-*/
-
-    R = (cv::Mat_<double>(3, 3) << 1., 0., 0., 0., 0., 1., 0., -1, 0.);
-    t = (cv::Mat_<double>(3, 1) << 0., -30000, 4958.3);
+    //posをCamera1 Coordinateに変換
+    t = R * pos;
 
     return 0;
 }  // namespace Init
 
-cv::Mat input_images(std::string s)
+cv::Mat input_render(std::string s, int num)
+{
+
+    std::ostringstream ostr;
+    ostr << filepath1 << '/' << s << "/pic" << std::to_string(num) << ".png";
+    cv::Mat image = cv::imread(ostr.str(), 1);
+
+    return image;
+}
+
+cv::Mat input_images2(std::string s, std::string t)
 {
     std::ostringstream ostr;
     ostr << filepath1 << "/images.xml";
@@ -78,7 +72,25 @@ cv::Mat input_images(std::string s)
     }
 
     std::ostringstream ostr2;
-    ostr2 << filepath2 << std::to_string((int)fs[s][0]) << "/pic" << std::to_string((int)fs[s][1]) << ".jpg";
+    ostr2 << filepath2 << '/' << s << "/pic" << std::to_string((int)fs[t][0]) << ".png";
+    cv::Mat image = cv::imread(ostr2.str(), 1);
+
+    return image;
+}
+cv::Mat input_images(std::string s)
+{
+    std::ostringstream ostr;
+    ostr << filepath1 << "/images.xml";
+    cv::FileStorage fs(ostr.str(), cv::FileStorage::READ);
+    if (!fs.isOpened()) {
+        std::cerr << "images.xml can not be opened." << std::endl;
+    }
+
+    //cv::FileNode f = fs[s];
+    //std::cout << (std::string)f << std::endl;
+
+    std::ostringstream ostr2;
+    ostr2 << filepath2 << "/A" << std::to_string((int)fs[s][0]) << "/pic" << std::to_string((int)fs[s][1]) << ".jpg";
     cv::Mat image = cv::imread(ostr2.str(), 1);
 
     return image;

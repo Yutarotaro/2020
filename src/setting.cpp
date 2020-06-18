@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
 
         // (4)コーナー位置をサブピクセル精度に修正，描画
         cv::Mat src_gray = cv::Mat(srcImages[i].size(), CV_8UC1);
-        cv::cvtColor(srcImages[i], src_gray, CV_BGR2GRAY);
+        cv::cvtColor(srcImages[i], src_gray, cv::COLOR_BGR2GRAY);
         cv::find4QuadCornerSubpix(src_gray, corners, cv::Size(3, 3));
         cv::drawChessboardCorners(srcImages[i], pattern_size, corners, found);
         img_points.push_back(corners);
