@@ -11,8 +11,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_definitions(-DRESOURCE_DIR="${PROJECT_BINARY_DIR}/include/")
 add_definitions( -std=c++17 -Wall )
 
-add_executable(main main.cpp pos/module.cpp read/difference.cpp common/init.cpp)
-add_executable(test test.cpp pos/module.cpp read/difference.cpp common/init.cpp)
+add_executable(main main.cpp pos/fromtwo.cpp pos/module.cpp pos/calib.cpp read/difference.cpp read/template.cpp common/init.cpp)
+add_executable(test test.cpp pos/fromtwo.cpp pos/module.cpp pos/calib.cpp read/difference.cpp read/template.cpp common/init.cpp)
 add_executable(setting setting.cpp)
 
 # Include directories for this project

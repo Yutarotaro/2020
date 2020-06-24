@@ -9,9 +9,10 @@ namespace Module
 {
 
 struct pose {
-    cv::Mat rot;
-    cv::Mat tra;
+    cv::Mat position;
+    cv::Mat orientation;
 };
+
 cv::Mat getHomography(cv::Mat Src1, cv::Mat Src2);
 
 pose decomposeHomography(cv::Mat H, cv::Mat A);

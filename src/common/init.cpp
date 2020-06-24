@@ -7,6 +7,7 @@
 #include <string>
 
 extern cv::Mat A;
+extern cv::Mat distCoeffs;
 extern cv::Mat R;
 extern cv::Mat t;
 extern cv::Mat pos;
@@ -26,10 +27,9 @@ int parseInit()
         std::cerr << "File can not be opened." << std::endl;
     }
 
-    cv::Mat cameraMatrix, distCoef;
     //    fs["intrinsic"] >> cameraMatrix;
     fs["intrinsic"] >> A;
-    fs["distortion"] >> distCoef;
+    fs["distortion"] >> distCoeffs;
 
     //TODO: .xmlからの配列の読み取り 6/1
 

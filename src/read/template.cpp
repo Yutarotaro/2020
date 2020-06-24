@@ -6,12 +6,11 @@
 #include <utility>
 #include <vector>
 
+extern cv::Mat temp;
 namespace Template
 {
 //cv::Mat temp = Init::input_images2("clock", "temp");
 //cv::Mat temp = Init::input_images2("meter", "meter_origin");
-cv::Mat temp = cv::imread("/Users/yutaro/research/2020/src/pictures/meter2/pic-1.png", 1);
-
 void equalize(cv::Mat src, cv::Mat& dst)
 {
     cv::cvtColor(src, src, cv::COLOR_BGR2GRAY);
@@ -172,6 +171,8 @@ void readMeter(cv::Mat src)
     cv::Mat tmp;
 
     //    cv::resize(temp, temp, cv::Size(), 0.5, 0.5);
+    cv::imshow("fi", temp);
+    cv::waitKey();
     //    equalize(temp, tmp);
 
     auto H = Module::getHomography(temp, src);
@@ -196,32 +197,62 @@ void readMeter(cv::Mat src)
 
     //確率ハフ変換による直線検出
     int l = 0;
-    int r = 1800;
+    int r = 2800;
 
-    int maxLineGap = 400;
+    int maxLineGap = 0;
 
     std::vector<cv::Vec4i> lines;
     int ct = 0;
+    double fir = 0., sec = 0.;
+
+    double M = -double(1e9);
+    double m = double(1e9);
+
+    int M_ind = -1;
+    int m_ind = -1;
+
     while (true) {
         ct++;
         int toupiao = (l + r) / 2;
-        cv::HoughLinesP(target, lines, 1, CV_PI / 180, toupiao, 30, maxLineGap);
+        cv::HoughLinesP(target, lines, 1, CV_PI / 180, toupiao, 100, maxLineGap);
 
+        int num = 6;
+        if (lines.size() == num) {
+            cv::cvtColor(target, target, CV_GRAY2BGR);
+            fir = double(lines[0][0] - lines[0][2]) / (lines[0][1] - lines[0][3]);
+            double delta = 0.3;
 
-        if (lines.size() == 2) {
             for (size_t i = 0; i < lines.size(); i++) {
-                cv::line(target, cv::Point(lines[i][0], lines[i][1]), cv::Point(lines[i][2], lines[i][3]), cv::Scalar(0, 0, 255), 3, 8);
+                double tmp = double(lines[i][0] - lines[i][2]) / double(lines[i][1] - lines[i][3]);
+
+                if (tmp < 2 || tmp > 6) {
+                    continue;
+                }
+
+                if (tmp > M) {
+                    M = tmp;
+                    M_ind = i;
+                }
+                if (tmp < m) {
+                    m = tmp;
+                    m_ind = i;
+                }
+                /*            std::cout << fir << ' ' << sec << std::endl;
+                if (abs(tmp - fir) > delta) {
+                    sec = tmp;
+                    break;
+                }
+                */
             }
             std::cout << lines.size() << std::endl;
             std::cout << ct << ' ' << toupiao << std::endl;
             break;
-        } else if (lines.size() > 2) {
+        } else if (lines.size() > num) {
             l = toupiao;
         } else {
             r = toupiao;
         }
 
-        std::cout << toupiao << std::endl;
 
         if (r - l == 1) {
             std::cout << "cannot" << std::endl;
@@ -229,8 +260,16 @@ void readMeter(cv::Mat src)
         }
     }
 
+    //std::cout << fir << ' ' << sec << std::endl;
+    std::cout << M << ' ' << m << std::endl;
+
+
+    cv::line(target, cv::Point(lines[M_ind][0], lines[M_ind][1]), cv::Point(lines[M_ind][2], lines[M_ind][3]), cv::Scalar(0, 0, 255), 3, 8);
+    cv::line(target, cv::Point(lines[m_ind][0], lines[m_ind][1]), cv::Point(lines[m_ind][2], lines[m_ind][3]), cv::Scalar(0, 0, 255), 3, 8);
+
 
     cv::imshow("i", target);
+    cv::imwrite("read.png", target);
     cv::waitKey();
 }
 

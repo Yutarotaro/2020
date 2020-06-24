@@ -11,7 +11,7 @@ public:
     double value;
     double percent;
 };
-std::pair<cv::Point, int> circleDetect(cv::Mat img);
+std::pair<cv::Point, int> circleDetect(cv::Mat& img);
 
 void norm(std::pair<double, double>& x);
 void Lines(cv::Mat src, std::pair<cv::Point, int> circle, std::pair<double, int>& m);

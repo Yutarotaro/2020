@@ -11,7 +11,7 @@ cv::Mat origin = Init::input_images("pointer");
 
 int thre = 160;
 
-std::pair<cv::Point, int> circleDetect(cv::Mat img)
+std::pair<cv::Point, int> circleDetect(cv::Mat& img)
 {
     cv::Mat gray;
     //2値化
@@ -45,7 +45,7 @@ std::pair<cv::Point, int> circleDetect(cv::Mat img)
             continue;
         }
 
-#if 1
+#if 0
         std::cout << i << std::endl;
         cv::Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
         radius = cvRound(circles[i][2]);
@@ -77,7 +77,7 @@ std::pair<cv::Point, int> circleDetect(cv::Mat img)
         }
     }
 
-    index = 0;
+    //    index = 0;
 
     if (flag) {
         index = cv::waitKey(100) + 1;
@@ -90,14 +90,23 @@ std::pair<cv::Point, int> circleDetect(cv::Mat img)
         std::cout << index << std::endl;
     }
 
-
     cv::Point center(cvRound(circles[index][0]), cvRound(circles[index][1]));
     radius = cvRound(circles[index][2]);
+
+    int m = 30;
+    int thick = 600 + m;
+    int tmp_rad = radius + thick / 2 - m;
 
     // 円の中心を描画します．
     circle(img, center, 3, cv::Scalar(0, 255, 0), -1, 8, 0);
     // 円を描画します．
-    circle(img, center, radius, cv::Scalar(0, 0, 255), 3, 8, 0);
+    //circle(img, center, radius, cv::Scalar(0, 0, 255), 3, 8, 0);
+
+
+    circle(img, center, tmp_rad, cv::Scalar(0, 0, 0), thick, 8, 0);
+
+    // cv::Mat result;
+    // img.copyTo(img, mask);
 
     cv::namedWindow("circles", 1);
     cv::imshow("circles", img);

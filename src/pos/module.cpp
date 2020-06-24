@@ -1,5 +1,6 @@
 #include "module.hpp"
 #include "opencv2/calib3d.hpp"
+#include "opencv2/features2d.hpp"
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <utility>
@@ -9,9 +10,13 @@ using namespace std;
 
 
 extern cv::Mat A;
+extern cv::Mat distCoeffs;
 extern cv::Mat R;
 extern cv::Mat pos;  //World
 extern cv::Mat t;    //Camera1
+
+extern std::vector<cv::KeyPoint> keypoints1;
+extern cv::Mat descriptors1;
 
 namespace Module
 {
@@ -19,19 +24,14 @@ namespace Module
 Mat getHomography(Mat Src1, Mat Src2)
 {
     //キーポイント検出と特徴量記述
-    vector<KeyPoint> keypoints1;
     vector<KeyPoint> keypoints2;
-    Mat descriptors1, descriptors2;
+    Mat descriptors2;
 
-    cv::Ptr<cv::AKAZE> akaze;
-    try {
-        akaze = cv::AKAZE::create();
-    } catch (cv::Exception& e) {
-        std::cerr << e.what() << std::endl;
-    }
+    cv::Ptr<cv::Feature2D> feature;
+    feature = cv::AKAZE::create();
 
-    akaze->detectAndCompute(Src1, cv::Mat(), keypoints1, descriptors1);
-    akaze->detectAndCompute(Src2, cv::Mat(), keypoints2, descriptors2);
+
+    feature->detectAndCompute(Src2, cv::Mat(), keypoints2, descriptors2);
 
     //マッチング(knnマッチング)
     vector<vector<cv::DMatch>> knnmatch_points;
@@ -39,7 +39,7 @@ Mat getHomography(Mat Src1, Mat Src2)
     match.knnMatch(descriptors1, descriptors2, knnmatch_points, 2);
 
     //対応点を絞る
-    const double match_par = 0.6;  //候補点を残す場合のしきい値originally 0.6
+    const double match_par = 0.77;  //候補点を残す場合のしきい値originally 0.6
     vector<cv::DMatch> goodMatch;
     //KeyPoint -> Point2d
     vector<cv::Point2f> match_point1;
@@ -76,6 +76,8 @@ Mat getHomography(Mat Src1, Mat Src2)
         }
     }
 
+    std::cout << inlinerMatch.size() << std::endl;
+
     //対応点の表示
     cv::Mat drawmatch;
     cv::drawMatches(Src1, keypoints1, Src2, keypoints2, goodMatch, drawmatch);
@@ -90,7 +92,7 @@ Mat getHomography(Mat Src1, Mat Src2)
 #if 1
     imshow("Inliner", drawMatch_inliner);
     imwrite("./match_inliner.jpg", drawMatch_inliner);
-    cv::waitKey();
+    cv::waitKey(1);
 #endif
     return H;
 }
@@ -120,13 +122,11 @@ pose decomposeHomography(cv::Mat H, cv::Mat A)
 
     //solutionsの個数が解の個数(それはそう)
     int solutions = cv::decomposeHomographyMat(H, A, Rs_decomp, ts_decomp, normals_decomp);
-    std::cout << "Decompose homography matrix estimated by findHomography():" << std::endl
-              << std::endl;
 
-    //normals_decompが(0,0,-1)に最も近いものを選択
+    //normals_decompが(0,0,1)に最も近いものを選択
 
     double bijiao = -1;
-    cv::Mat z_axis = (cv::Mat_<double>(3, 1) << 0., 0., 1.);
+    cv::Mat z_axis = (cv::Mat_<double>(3, 1) << 0., 0., 1.);  //camera_normal direction of z-axis of camera
     int index = 0;
 
     double factor_d1 = 1.0 / d_inv1;
@@ -156,7 +156,6 @@ pose decomposeHomography(cv::Mat H, cv::Mat A)
         }
     }
 
-
     cv::Rodrigues(Rs_decomp[index], rvec_decomp);
 
     cv::Mat rvec3, tvec3;
@@ -169,28 +168,30 @@ pose decomposeHomography(cv::Mat H, cv::Mat A)
     Mat X_w = R3.inv() * (tvec3 - factor_d1 * ts_decomp[index]);
     Mat t_w = R3.inv() * (ts_decomp[index] * factor_d1);
 
-
-    //xだけなぜか-になる
-    //   t_w.at<double>(0, 0) *= -1.;
-    //   解決！！(Rのミス)
-
     Mat t_w2 = R3.inv() * tvec3;
-    Mat X_w2 = pos + t_w;
+    Mat X_w2 = pos + t_w2;
 
     //t_w World coordinateでの Cam1to2の移動量
     //t_w2 World coordinateでの Oto2の移動量
 
-
+    /*
     std::cout << "移動後のカメラの位置" << std::endl
               << X_w2 << std::endl
               << std::endl;
+              */
+
+    /*
     std::cout << "移動後のカメラの回転行列" << std::endl
               << Rs_decomp[index] << std::endl
               << std::endl;
-    std::cout << "plane normal from homography decomposition: " << std::endl
-              << normals_decomp[index] << std::endl
-              << std::endl;
+    */
+    /*    std::cout << "plane normal from homography decomposition: " << std::endl
+              << // R.inv() 
+        normals_decomp[index] << std::endl
+                              << std::endl;
+    */
 
-    return {X_w2, Rs_decomp[index]};
+    //return {t_w2, Rs_decomp[index]};
+    return {t_w, rvec_decomp};
 }
 }  // namespace Module

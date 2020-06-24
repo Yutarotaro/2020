@@ -17,8 +17,8 @@ extern cv::Mat t;    //Camera1
 #define PAT_COL (10) /* パターンの列数 */
 #define PAT_SIZE (PAT_ROW * PAT_COL)
 #define ALL_POINTS (IMAGE_NUM * PAT_SIZE)
-#define CHESS_SIZE (270. * 1.6 / 23.8) /* パターン1マスの1辺サイズ[mm] */
-//#define CHESS_SIZE (24) /* パターン1マスの1辺サイズ[mm] */
+//#define CHESS_SIZE (270. * 1.6 / 23.8) /* パターン1マスの1辺サイズ[mm] */
+#define CHESS_SIZE (24) /* パターン1マスの1辺サイズ[mm] */
 
 
 namespace Calib
@@ -72,17 +72,6 @@ void calibration(cv::Mat& img, Module::pose& p)
     camera.push_back(corners[0]);
     world.push_back(cv::Point3f(0., 0., 0.));
 
-    //    camera.push_back(corners[1]);
-    //   world.push_back(cv::Point3f(CHESS_SIZE + 270. / 23.8, 0., 0.));
-
-    /*
-    camera.push_back(corners[2]);
-    world.push_back(cv::Point3f(2. * CHESS_SIZE, 0., 0.));
-
-    camera.push_back(corners[3]);
-    world.push_back(cv::Point3f(3. * CHESS_SIZE, 0., 0.));
-    */
-
     camera.push_back(corners[PAT_COL - 1]);
     world.push_back(cv::Point3f((PAT_COL - 1) * CHESS_SIZE + PAT_COL, 0., 0.));
 
@@ -111,6 +100,6 @@ void calibration(cv::Mat& img, Module::pose& p)
     p.orientation = R_0;
 
     cv::imshow("Calibration", img);
-    cv::waitKey(0);
+    cv::waitKey(1);
 }
 }  // namespace Calib

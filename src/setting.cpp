@@ -19,13 +19,14 @@
 
 using namespace std;
 
-#define IMAGE_NUM (10) /* 画像数 */
+//#define IMAGE_NUM (19) /* 画像数 */
+#define IMAGE_NUM (12) /* 画像数 */
 #define PAT_ROW (7)    /* パターンの行数 */
 #define PAT_COL (10)   /* パターンの列数 */
 #define PAT_SIZE (PAT_ROW * PAT_COL)
 #define ALL_POINTS (IMAGE_NUM * PAT_SIZE)
-#define CHESS_SIZE (2700. * 1.6 / 23.8) /* パターン1マスの1辺サイズ[mm] */
-//#define CHESS_SIZE (50) /* パターン1マスの1辺サイズ[mm] */
+//#define CHESS_SIZE (270. * 1.6 / 23.8) /* パターン1マスの1辺サイズ[mm] */
+#define CHESS_SIZE (24) /* パターン1マスの1辺サイズ[mm] */
 
 int main(int argc, char* argv[])
 {
@@ -42,8 +43,9 @@ int main(int argc, char* argv[])
     for (i = 0; i < IMAGE_NUM; i++) {
         ostringstream ostr;
         //チェスボード写真のpath
-        //ostr << filepath << "/pictures/calib_img/IMG_47" << i + 42 << ".JPG";
-        ostr << filepath << "/pictures/calib_img/calib" << i << ".png";
+        //       ostr << filepath << "/pictures/calib_img/calib" << i << ".png";
+        ostr << filepath << "/pictures/meter_experiment/calib/pic" << i << ".JPG";
+        //        ostr << filepath << "/pictures/calib/pic" << i << ".JPG";
         cv::Mat src = cv::imread(ostr.str(), 1);
         if (src.empty()) {
             cerr << "cannot load image file : " << ostr.str() << endl;
