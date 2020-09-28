@@ -20,7 +20,7 @@
 using namespace std;
 
 //#define IMAGE_NUM (19) /* 画像数 */
-#define IMAGE_NUM (12) /* 画像数 */
+#define IMAGE_NUM (13) /* 画像数 */
 #define PAT_ROW (7)    /* パターンの行数 */
 #define PAT_COL (10)   /* パターンの列数 */
 #define PAT_SIZE (PAT_ROW * PAT_COL)
@@ -96,7 +96,7 @@ int main(int argc, char* argv[])
         img_points.push_back(corners);
 
         cv::imshow("Calibration", srcImages[i]);
-        cv::waitKey(1);
+        //        cv::waitKey(1);
     }
     cv::destroyWindow("Calibration");
 
@@ -118,6 +118,12 @@ int main(int argc, char* argv[])
         rvecs,
         tvecs);
 
+    cv::Mat R_tmp;
+    for (int i = IMAGE_NUM - 1; i < IMAGE_NUM; i++) {
+        cv::Rodrigues(rvecs[i], R_tmp);
+        std::cout << R_tmp.inv() * (-tvecs[i]) << std::endl
+                  << std::endl;
+    }
 
     // (6)XMLファイルへの書き出し
     cv::FileStorage fs("camera.xml", cv::FileStorage::WRITE);
@@ -126,8 +132,15 @@ int main(int argc, char* argv[])
         return -1;
     }
 
+    cv::Mat t = R_tmp.inv() * (-tvecs[IMAGE_NUM - 1]);
+
+    double offset = 72.;  //ワールド座標系xy平面からメータ平面までの距離
+    t.at<double>(0, 2) -= offset;
+
     fs << "intrinsic" << cam_mat;
     fs << "distortion" << dist_coefs;
+    fs << "R" << R_tmp;
+    fs << "t" << t;
     fs.release();
 
 

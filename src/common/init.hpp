@@ -14,7 +14,6 @@ int parseInit();
 cv::Mat input_render(std::string s, int num);
 cv::Mat input_images2(std::string s, std::string t);
 cv::Mat input_images(std::string s);
-void read_config();
 }  // namespace Init
 
 

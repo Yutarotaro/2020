@@ -31,7 +31,7 @@ std::pair<cv::Point, int> circleDetect(cv::Mat& img)
     int radius;
     bool flag = false;
 
-    std::cout << circles.size() << std::endl;
+    std::cout << "circle num" << circles.size() << std::endl;
 
 
     for (size_t i = 0; i < circles.size(); i++) {
@@ -66,10 +66,11 @@ std::pair<cv::Point, int> circleDetect(cv::Mat& img)
         int color_tmp = 0;
 
 
-        double a = 0;  //下の目的関数の中心からのずれの2乗の係数
+        double a = 1;  //下の目的関数の中心からのずれの2乗の係数
+        double b = 0;
 
         //目的関数。これが最も大きいものを選びたい。
-        double bijiao = -(C_x - x) * (C_x - x) * a - (C_y - y) * (C_y - y) * a + radius * radius;
+        double bijiao = -(C_x - x) * (C_x - x) * a - (C_y - y) * (C_y - y) * a + radius * radius * b;
 
         if (bijiao > tmp) {
             tmp = bijiao;
@@ -90,10 +91,18 @@ std::pair<cv::Point, int> circleDetect(cv::Mat& img)
         std::cout << index << std::endl;
     }
 
+    //    cv::Point center(cvRound(circles[index][0]), cvRound(circles[index][1]));
+    //   radius = cvRound(circles[index][2]);
+
+#if 0
     cv::Point center(cvRound(circles[index][0]), cvRound(circles[index][1]));
     radius = cvRound(circles[index][2]);
+#else
+    cv::Point center(343, 352);
+    radius = cvRound(270);
+#endif
 
-    int m = 30;
+    int m = 20;
     int thick = 600 + m;
     int tmp_rad = radius + thick / 2 - m;
 

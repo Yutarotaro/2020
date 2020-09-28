@@ -66,29 +66,13 @@ void getDiff(cv::Mat img, cv::Mat& dst)
     double C = 10.0;
 
     cv::cvtColor(img, img, cv::COLOR_BGR2GRAY);
-    //cv::cvtColor(templ, templ, cv::COLOR_BGR2GRAY);
-
-
-    /*    for (C = 0.; C < 2.; C += 0.2) {
-        cv::Mat tmp;
-        cv::adaptiveThreshold(img, tmp, maxval, method, type, blocksize, C);
-        //  cv::adaptiveThreshold(templ, templ, maxval, method, type, blocksize, C);
-
-        std::string s = std::to_string(C);
-        cv::imshow(s, tmp);
-        // cv::imshow("templ", templ);
-    }*/
-    //cv::bitwise_and(img, templ, dst);
-    //  cv::absdiff(img, templ, dst);
-
     cv::adaptiveThreshold(img, dst, maxval, method, type, blocksize, C);
-    //    cv::threshold(dst, dst, thresh, maxval, type);
 
 
     int ite = 1;
 
-    cv::erode(dst, dst, cv::Mat(), cv::Point(-1, -1), ite);
-    cv::dilate(dst, dst, cv::Mat(), cv::Point(-1, -1), ite);
+    //    cv::erode(dst, dst, cv::Mat(), cv::Point(-1, -1), ite);
+    //   cv::dilate(dst, dst, cv::Mat(), cv::Point(-1, -1), ite);
 
 
     cv::imshow("dst", dst);
@@ -97,73 +81,19 @@ void getDiff(cv::Mat img, cv::Mat& dst)
     cv::waitKey();
 }
 
-using namespace cv;
-
-
-void thinningIte(Mat& img, int pattern)
+void norm(std::pair<double, double>& x)
 {
+    double r = std::sqrt(x.first * x.first + x.second * x.second);
 
-    Mat del_marker = Mat::ones(img.size(), CV_8UC1);
-    int x, y;
-
-    for (y = 1; y < img.rows - 1; ++y) {
-
-        for (x = 1; x < img.cols - 1; ++x) {
-
-            int v9, v2, v3;
-            int v8, v1, v4;
-            int v7, v6, v5;
-
-            v1 = img.data[y * img.step + x * img.elemSize()];
-            v2 = img.data[(y - 1) * img.step + x * img.elemSize()];
-            v3 = img.data[(y - 1) * img.step + (x + 1) * img.elemSize()];
-            v4 = img.data[y * img.step + (x + 1) * img.elemSize()];
-            v5 = img.data[(y + 1) * img.step + (x + 1) * img.elemSize()];
-            v6 = img.data[(y + 1) * img.step + x * img.elemSize()];
-            v7 = img.data[(y + 1) * img.step + (x - 1) * img.elemSize()];
-            v8 = img.data[y * img.step + (x - 1) * img.elemSize()];
-            v9 = img.data[(y - 1) * img.step + (x - 1) * img.elemSize()];
-
-            int S = (v2 == 0 && v3 == 1) + (v3 == 0 && v4 == 1) + (v4 == 0 && v5 == 1) + (v5 == 0 && v6 == 1) + (v6 == 0 && v7 == 1) + (v7 == 0 && v8 == 1) + (v8 == 0 && v9 == 1) + (v9 == 0 && v2 == 1);
-
-            int N = v2 + v3 + v4 + v5 + v6 + v7 + v8 + v9;
-
-            int m1 = 0, m2 = 0;
-
-            if (pattern == 0)
-                m1 = (v2 * v4 * v6);
-            if (pattern == 1)
-                m1 = (v2 * v4 * v8);
-
-            if (pattern == 0)
-                m2 = (v4 * v6 * v8);
-            if (pattern == 1)
-                m2 = (v2 * v6 * v8);
-
-            if (S == 1 && (N >= 2 && N <= 6) && m1 == 0 && m2 == 0)
-                del_marker.data[y * del_marker.step + x * del_marker.elemSize()] = 0;
-        }
-    }
-
-    img &= del_marker;
+    x.first /= r;
+    x.second /= r;
 }
 
-void thinning(const Mat& src, Mat& dst)
+void minus(double& x)
 {
-    dst = src.clone();
-    dst /= 255;  // 0は0 , 1以上は1に変換される
-
-    Mat prev = Mat::zeros(dst.size(), CV_8UC1);
-    Mat diff;
-
-    do {
-        thinningIte(dst, 0);
-        thinningIte(dst, 1);
-        absdiff(dst, prev, diff);
-        dst.copyTo(prev);
-    } while (countNonZero(diff) > 0);
-
-    dst *= 255;
+    if (x < 0) {
+        x = 2. * CV_PI + x;
+    }
 }
 
 void readMeter(cv::Mat src)
@@ -171,21 +101,27 @@ void readMeter(cv::Mat src)
     cv::Mat tmp;
 
     //    cv::resize(temp, temp, cv::Size(), 0.5, 0.5);
-    cv::imshow("fi", temp);
-    cv::waitKey();
+    //    cv::imshow("fi", temp);
+    //   cv::waitKey();
     //    equalize(temp, tmp);
 
     auto H = Module::getHomography(temp, src);
 
 
-    cv::Mat dst = cv::Mat::zeros(src.rows + 100, src.cols + 100, CV_8UC3);
-    cv::warpPerspective(src, dst, H.inv(), dst.size());
-
-
     cv::Mat subImg;
-    tempMatch(dst, temp, subImg);
+    //cv::Mat dst = cv::Mat::zeros(src.rows + 100, src.cols + 100, CV_8UC3);
+    subImg = cv::Mat::zeros(temp.rows, temp.cols, CV_8UC3);
+    cv::warpPerspective(src, subImg, H.inv(), subImg.size());
+    cv::imwrite("inv.png", subImg);
+
+
+    //tempMatch(dst, temp, subImg);
+
+    //    subImg = cv::imread("../pictures/prac.png", 1);
+
 
     auto [p, R] = Difference::circleDetect(subImg);
+
 
     cv::Mat target;
     getDiff(subImg, target);
@@ -211,41 +147,51 @@ void readMeter(cv::Mat src)
     int M_ind = -1;
     int m_ind = -1;
 
+    std::pair<double, double> max_vec, min_vec;
+
     while (true) {
         ct++;
         int toupiao = (l + r) / 2;
-        cv::HoughLinesP(target, lines, 1, CV_PI / 180, toupiao, 100, maxLineGap);
+        cv::HoughLinesP(target, lines, 1, CV_PI / 180, toupiao, 70, maxLineGap);
+        std::cout << lines.size() << std::endl;
+        std::cout << ct << ' ' << toupiao << std::endl;
 
-        int num = 6;
+        //int num = 9;
+        int num = 8;
         if (lines.size() == num) {
             cv::cvtColor(target, target, CV_GRAY2BGR);
-            fir = double(lines[0][0] - lines[0][2]) / (lines[0][1] - lines[0][3]);
-            double delta = 0.3;
-
             for (size_t i = 0; i < lines.size(); i++) {
-                double tmp = double(lines[i][0] - lines[i][2]) / double(lines[i][1] - lines[i][3]);
+                double tmp = -double(lines[i][1] - lines[i][3]) / double(lines[i][0] - lines[i][2]);
+                //                cv::line(target, cv::Point(lines[i][0], lines[i][1]), cv::Point(lines[i][2], lines[i][3]), cv::Scalar(0, 0, 255), 3, 8);
+                //
 
-                if (tmp < 2 || tmp > 6) {
+                std::cout << i << ' ' << tmp << std::endl;
+                if (abs(tmp) > 0.8)
+                    continue;
+                //if (abs(target.cols / 2 - tmp * (target.rows / 2 - lines[i][0]) - lines[i][1]) > 75) {
+                //  continue;
+                //}
+
+                if (lines[i][1] > 0.80 * target.cols || lines[i][1] < 0.20 * target.cols || lines[i][3] > 0.80 * target.cols || lines[i][3] < 0.20 * target.cols) {
                     continue;
                 }
 
+                if (lines[i][0] > 0.80 * target.rows || lines[i][2] > 0.80 * target.rows || lines[i][0] < 0.20 * target.rows || lines[i][2] < 0.20 * target.rows) {
+                    continue;
+                }
+
+
                 if (tmp > M) {
                     M = tmp;
+                    max_vec = std::make_pair(double(lines[i][1] - lines[i][3]), double(lines[i][0] - lines[i][2]));
                     M_ind = i;
                 }
                 if (tmp < m) {
                     m = tmp;
+                    min_vec = std::make_pair(double(lines[i][1] - lines[i][3]), double(lines[i][0] - lines[i][2]));
                     m_ind = i;
                 }
-                /*            std::cout << fir << ' ' << sec << std::endl;
-                if (abs(tmp - fir) > delta) {
-                    sec = tmp;
-                    break;
-                }
-                */
             }
-            std::cout << lines.size() << std::endl;
-            std::cout << ct << ' ' << toupiao << std::endl;
             break;
         } else if (lines.size() > num) {
             l = toupiao;
@@ -260,9 +206,35 @@ void readMeter(cv::Mat src)
         }
     }
 
-    //std::cout << fir << ' ' << sec << std::endl;
-    std::cout << M << ' ' << m << std::endl;
 
+    norm(max_vec);
+    norm(min_vec);
+
+
+    std::pair<double, double> vec = {-double(max_vec.first + min_vec.first), double(max_vec.second + min_vec.second)};
+    std::cout << vec.first << ' ' << vec.second << std::endl;
+
+
+    double angle = std::atan2(vec.first, vec.second);
+
+    std::cout << angle * 180. / CV_PI << std::endl;
+
+    //    double min_angle = std::atan2(-175, -150);
+    //   double max_angle = std::atan2(-172, 153);
+    //angle = std::atan2(35, -195);
+    //    angle = std::atan2(1, 0);
+    double min_angle = std::atan2(0, -1);
+    double max_angle = std::atan2(0, 1);
+    //    minus(min_angle);
+    //   minus(max_angle);
+    //  minus(angle);
+
+    double L = 80.0;
+    //double beta = 2. * CV_PI - (max_angle - min_angle);
+    double beta = CV_PI - max_angle;
+    std::cout << (2. * CV_PI - angle + std::atan2(-175, -150)) * 180 / CV_PI << ' ' << min_angle << ' ' << max_angle << std::endl;
+
+    std::cout << -L * (angle - min_angle) / beta + 20.;
 
     cv::line(target, cv::Point(lines[M_ind][0], lines[M_ind][1]), cv::Point(lines[M_ind][2], lines[M_ind][3]), cv::Scalar(0, 0, 255), 3, 8);
     cv::line(target, cv::Point(lines[m_ind][0], lines[m_ind][1]), cv::Point(lines[m_ind][2], lines[m_ind][3]), cv::Scalar(0, 0, 255), 3, 8);

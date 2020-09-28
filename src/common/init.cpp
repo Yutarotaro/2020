@@ -30,6 +30,8 @@ int parseInit()
     //    fs["intrinsic"] >> cameraMatrix;
     fs["intrinsic"] >> A;
     fs["distortion"] >> distCoeffs;
+    fs["R"] >> R;
+    fs["t"] >> pos;
 
     //TODO: .xmlからの配列の読み取り 6/1
 
@@ -42,9 +44,9 @@ int parseInit()
     if (!fs2.isOpened()) {
         std::cerr << "File can not be opened." << std::endl;
     }
+    //    fs2["pos"] >> pos;
+    //   fs2["R"] >> R;
 
-    fs2["R"] >> R;
-    fs2["pos"] >> pos;
 
     //posをCamera1 Coordinateに変換
     t = R * pos;

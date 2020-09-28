@@ -13,6 +13,8 @@ add_definitions( -std=c++17 -Wall )
 
 add_executable(main main.cpp pos/fromtwo.cpp pos/module.cpp pos/calib.cpp read/difference.cpp read/template.cpp common/init.cpp)
 add_executable(test test.cpp pos/fromtwo.cpp pos/module.cpp pos/calib.cpp read/difference.cpp read/template.cpp common/init.cpp)
+add_executable(fitEllipse fitEllipse.cpp pos/fromtwo.cpp fitting/fit.cpp pos/module.cpp pos/calib.cpp read/difference.cpp read/template.cpp common/init.cpp)
+add_executable(edgeTest edgeTest.cpp pos/fromtwo.cpp fitting/fit.cpp pos/module.cpp pos/calib.cpp read/difference.cpp read/template.cpp common/init.cpp)
 add_executable(setting setting.cpp)
 
 # Include directories for this project
@@ -27,8 +29,9 @@ set(INCLUDE_DIR
 include_directories("${INCLUDE_DIR}")
 
 # For Eigen
-find_package( Eigen3 REQUIRED )
-include_directories(EIGEN3_INCLUDE_DIR)
+#find_package( Eigen3 REQUIRED )
+#include_directories(EIGEN3_INCLUDE_DIR)
+include_directories("/usr/local/Cellar/eigen/3.3.7/include/eigen3")
 
 # For OpenCV
 #find_package(OpenCV 4.3.0 EXACT REQUIRED)
@@ -38,6 +41,10 @@ if(OpenCV_FOUND)
     target_link_libraries(main ${OpenCV_LIBS})
     target_include_directories(test PUBLIC ${OpenCV_INCLUDE_DIRS})
     target_link_libraries(test ${OpenCV_LIBS})
+    target_include_directories(fitEllipse PUBLIC ${OpenCV_INCLUDE_DIRS})
+    target_link_libraries(fitEllipse ${OpenCV_LIBS})
+    target_include_directories(edgeTest PUBLIC ${OpenCV_INCLUDE_DIRS})
+    target_link_libraries(edgeTest ${OpenCV_LIBS})
     target_include_directories(setting PUBLIC ${OpenCV_INCLUDE_DIRS})
     target_link_libraries(setting ${OpenCV_LIBS})
 endif()

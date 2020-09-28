@@ -68,7 +68,7 @@ void calibration(cv::Mat& img, Module::pose& p)
     vector<cv::Point2f> camera;
     vector<cv::Point3f> world;
 
-
+#if 0
     camera.push_back(corners[0]);
     world.push_back(cv::Point3f(0., 0., 0.));
 
@@ -80,7 +80,27 @@ void calibration(cv::Mat& img, Module::pose& p)
 
     camera.push_back(corners[PAT_ROW * PAT_COL - 1]);
     world.push_back(cv::Point3f((PAT_COL - 1) * CHESS_SIZE + PAT_COL, 0., -(PAT_ROW - 1) * CHESS_SIZE - PAT_ROW));
+#else
 
+    camera.push_back(corners[0]);
+    world.push_back(cv::Point3f(0., 0., 0.));
+
+    camera.push_back(corners[1]);
+    world.push_back(cv::Point3f(0., CHESS_SIZE, 0.));
+
+    camera.push_back(corners[2]);
+    world.push_back(cv::Point3f(0., 2. * CHESS_SIZE, 0.));
+
+    camera.push_back(corners[PAT_COL - 1]);
+    world.push_back(cv::Point3f(0., (PAT_COL - 1) * CHESS_SIZE, 0.));
+
+    camera.push_back(corners[(PAT_ROW - 1) * PAT_COL]);
+    world.push_back(cv::Point3f((PAT_ROW - 1) * CHESS_SIZE, 0., 0.));
+
+    camera.push_back(corners[PAT_ROW * PAT_COL - 1]);
+    world.push_back(cv::Point3f((PAT_ROW - 1) * CHESS_SIZE, (PAT_COL - 1) * CHESS_SIZE, 0.));
+
+#endif
 
     cv::Mat rvec, tvec;
 
@@ -99,7 +119,7 @@ void calibration(cv::Mat& img, Module::pose& p)
     p.position = tvec;
     p.orientation = R_0;
 
-    cv::imshow("Calibration", img);
-    cv::waitKey(1);
+    //   cv::imshow("Calibration", img);
+    //  cv::waitKey(1);
 }
 }  // namespace Calib

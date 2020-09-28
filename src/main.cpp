@@ -26,6 +26,8 @@ cv::Mat temp;
 std::vector<cv::KeyPoint> keypoints1;
 cv::Mat descriptors1;
 
+std::vector<cv::Point> featurePoint;
+cv::Mat H;
 //メータの位置をワールド座標の原点とする
 
 int main(void)
@@ -75,7 +77,7 @@ int main(void)
 
         //mask処理でchessboardを隠す
 
-        auto H = Module::getHomography(Base2, Now);
+        H = Module::getHomography(Base2, Now);
         auto [position, ori] = Module::decomposeHomography(H, A);
 
         position += pos;

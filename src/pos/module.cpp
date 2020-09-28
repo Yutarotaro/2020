@@ -18,6 +18,9 @@ extern cv::Mat t;    //Camera1
 extern std::vector<cv::KeyPoint> keypoints1;
 extern cv::Mat descriptors1;
 
+extern std::vector<cv::Point> featurePoint;
+extern cv::Mat H;
+
 namespace Module
 {
 
@@ -39,14 +42,16 @@ Mat getHomography(Mat Src1, Mat Src2)
     match.knnMatch(descriptors1, descriptors2, knnmatch_points, 2);
 
     //対応点を絞る
-    const double match_par = 0.77;  //候補点を残す場合のしきい値originally 0.6
+    const double match_par = 0.75;  //候補点を残す場合のしきい値originally 0.6
     vector<cv::DMatch> goodMatch;
     //KeyPoint -> Point2d
     vector<cv::Point2f> match_point1;
     vector<cv::Point2f> match_point2;
+
     for (size_t i = 0; i < knnmatch_points.size(); ++i) {
         double distance1 = knnmatch_points[i][0].distance;
         double distance2 = knnmatch_points[i][1].distance;
+
 
         //第二候補点から距離値が離れている点のみ抽出（いい点だけ残す）
         if (distance1 <= distance2 * match_par) {
@@ -58,8 +63,7 @@ Mat getHomography(Mat Src1, Mat Src2)
 
     //ホモグラフィ行列推定
     cv::Mat masks;
-    cv::Mat H = cv::Mat::zeros(3, 3, CV_32F);
-
+    H = cv::Mat::zeros(3, 3, CV_32F);
     try {
         H = cv::findHomography(match_point1, match_point2, masks, cv::RANSAC, 3);
     } catch (cv::Exception& e) {
@@ -68,31 +72,39 @@ Mat getHomography(Mat Src1, Mat Src2)
     }
 
     //RANSACで使われた対応点のみ抽出
-    vector<cv::DMatch> inlinerMatch;
+    vector<cv::DMatch> inlierMatch;
     for (size_t i = 0; i < masks.rows; ++i) {
-        uchar* inliner = masks.ptr<uchar>(i);
-        if (inliner[0] == 1) {
-            inlinerMatch.push_back(goodMatch[i]);
+        uchar* inlier = masks.ptr<uchar>(i);
+        if (inlier[0] == 1) {
+            inlierMatch.push_back(goodMatch[i]);
         }
     }
 
-    std::cout << inlinerMatch.size() << std::endl;
+    std::cout << inlierMatch.size() << std::endl;
 
-    //対応点の表示
+
+    for (int i = 0; i < inlierMatch.size(); ++i) {
+        int kp2_idx = inlierMatch[i].trainIdx;
+        featurePoint.push_back(cv::Point(keypoints2[kp2_idx].pt.x, keypoints2[kp2_idx].pt.y));
+    }
+
+    //std::cout << "featurePoint" << featurePoint << std::endl;
+
+
     cv::Mat drawmatch;
     cv::drawMatches(Src1, keypoints1, Src2, keypoints2, goodMatch, drawmatch);
     //    imwrite("../output/match_point.jpg", drawmatch);
 
     //インライアの対応点のみ表示
-    cv::Mat drawMatch_inliner;
-    cv::drawMatches(Src1, keypoints1, Src2, keypoints2, inlinerMatch, drawMatch_inliner);
-    //imwrite("../output/match_inliner.jpg", drawMatch_inliner);
+    cv::Mat drawMatch_inlier;
+    cv::drawMatches(Src1, keypoints1, Src2, keypoints2, inlierMatch, drawMatch_inlier);
+    //imwrite("../output/match_inlier.jpg", drawMatch_inlier);
 
-    //    imshow("DrawMatch", drawmatch);
-#if 1
+    imshow("DrawMatch", drawmatch);
+#if 0
     imshow("Inliner", drawMatch_inliner);
     imwrite("./match_inliner.jpg", drawMatch_inliner);
-    cv::waitKey(1);
+    cv::waitKey(0.1);
 #endif
     return H;
 }
@@ -111,12 +123,15 @@ pose decomposeHomography(cv::Mat H, cv::Mat A)
     cv::Mat tvec1 = t;  //tvec1はCamera coordinate
 
 
-    cv::Mat normal = (cv::Mat_<double>(3, 1) << 0, 1, 0);
+    //    cv::Mat normal = (cv::Mat_<double>(3, 1) << 0, 1, 0);
+    cv::Mat normal = (cv::Mat_<double>(3, 1) << 0, 0, -1);
     cv::Mat normal1 = R1 * normal;
 
     Mat origin(3, 1, CV_64F, Scalar(0));
     Mat origin1 = R1 * origin + tvec1;
     double d_inv1 = 1.0 / normal1.dot(origin1);
+
+    std::cout << "距離" << 1. / d_inv1 << std::endl;
 
     std::vector<cv::Mat> Rs_decomp, ts_decomp, normals_decomp;
 
@@ -126,7 +141,8 @@ pose decomposeHomography(cv::Mat H, cv::Mat A)
     //normals_decompが(0,0,1)に最も近いものを選択
 
     double bijiao = -1;
-    cv::Mat z_axis = (cv::Mat_<double>(3, 1) << 0., 0., 1.);  //camera_normal direction of z-axis of camera
+    //cv::Mat z_axis = (cv::Mat_<double>(3, 1) << 0., 0., 1.);
+    cv::Mat z_axis = (cv::Mat_<double>(3, 1) << 0., 0., -1.);
     int index = 0;
 
     double factor_d1 = 1.0 / d_inv1;
@@ -156,6 +172,7 @@ pose decomposeHomography(cv::Mat H, cv::Mat A)
         }
     }
 
+
     cv::Rodrigues(Rs_decomp[index], rvec_decomp);
 
     cv::Mat rvec3, tvec3;
@@ -180,6 +197,9 @@ pose decomposeHomography(cv::Mat H, cv::Mat A)
               << std::endl;
               */
 
+    std::cout << "方向ベクトル" << std::endl
+              << R3.inv() * ts_decomp[index]
+              << std::endl;
     /*
     std::cout << "移動後のカメラの回転行列" << std::endl
               << Rs_decomp[index] << std::endl
@@ -192,6 +212,6 @@ pose decomposeHomography(cv::Mat H, cv::Mat A)
     */
 
     //return {t_w2, Rs_decomp[index]};
-    return {t_w, rvec_decomp};
+    return {-t_w, rvec_decomp};
 }
 }  // namespace Module

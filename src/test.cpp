@@ -27,39 +27,30 @@ cv::Mat temp;
 std::vector<cv::KeyPoint> keypoints1;
 cv::Mat descriptors1;
 
+std::vector<cv::Point> featurePoint;
+cv::Mat H;
+
 int main(int argc, char** argv)
 {
     //parameter
     Init::parseInit();
 
 #if 1
-    /*
-    cv::Mat img = cv::imread("../pictures/meter2/pic-1calib.png", 1);
-    cv::Mat Now = cv::imread("../pictures/meter2/pic-1meter.png", 1);
-    cv::Mat Base = cv::imread("../pictures/meter2/pic14.JPG", 1);
-*/
-    /*
-    cv::Mat Base_calib = cv::imread("../pictures/sim/pic0.png", 1);
-    cv::Mat Now_calib = cv::imread("../pictures/sim/pic1.png", 1);
-    cv::Mat Base_clock = cv::imread("../pictures/sim/pic2.png", 1);
-    cv::Mat Now_clock = cv::imread("../pictures/sim/pic3.png", 1);
-    */
-
 
     cv::Mat Base_calib = cv::imread("../pictures/meter_experiment/pic-1.JPG", 1);
     cv::Mat Base_clock_tmp = cv::imread("../pictures/meter_experiment/pic-1.JPG", 1);
     cv::Mat mask = cv::Mat::zeros(Base_clock_tmp.rows, Base_clock_tmp.cols, CV_8UC1);
-    cv::circle(mask, cv::Point(Base_clock_tmp.cols / 2 + 100, Base_clock_tmp.rows / 2 - 120), 365, cv::Scalar(255), -1, CV_AA);
+    cv::circle(mask, cv::Point(Base_clock_tmp.cols / 2 + 90, Base_clock_tmp.rows / 2 - 120), 360, cv::Scalar(255), -1, CV_AA);
     //    cv::circle(mask, cv::Point(1290, 2207), 370, cv::Scalar(255), -1, CV_AA);
 
     cv::Mat Base_clock;
     Base_clock_tmp.copyTo(Base_clock, mask);
+    //cv::imwrite("mask.png", Base_clock);
 
 
+    //基準画像の特徴点を事前に検出しておく
     cv::Ptr<cv::Feature2D> feature;
     feature = cv::AKAZE::create();
-
-
     feature->detectAndCompute(Base_clock, cv::Mat(), keypoints1, descriptors1);
 
 
@@ -68,27 +59,26 @@ int main(int argc, char** argv)
 
     cv::Mat rvec;  //回転ベクトル
 
-    int total = 127;
+    int total = 126;
 
 
     std::ofstream ofs("./result.csv");
+    std::ofstream ofs2("./failure.csv");
+    int failure = 0;  //i = 54をcountしている
 
     for (int i = 0; i < total; i++) {
-        if (i == 54)
-            continue;
         std::cout << std::endl
                   << i + 1 << "回目" << std::endl;
         std::string path = "../pictures/meter_experiment/pic" + std::to_string(i) + ".JPG";
 
-
         cv::Mat Now_calib = cv::imread(path, 1);
         cv::Mat Now_clock = cv::imread(path, 1);
 
-
         Module::pose q;
-        Calib::calibration(Now_calib, q);  //qに基準とする画像のカメラ視点，位置が入る
+        Calib::calibration(Now_calib, q);  //qに対象画像のカメラ視点，位置が入る
 
-        cv::Rodrigues(q.orientation * p.orientation.inv(), rvec);
+        cv::Mat R_calib = q.orientation * p.orientation.inv();
+        cv::Rodrigues(R_calib, rvec);
 
         cv::Mat calib_pos = p.orientation.inv() * p.position - q.orientation.inv() * q.position;
 
@@ -96,32 +86,37 @@ int main(int argc, char** argv)
             << "chessboard並進ベクトル" << std::endl
             << calib_pos << std::endl
             << "回転ベクトル" << std::endl
-            << std::endl
             << rvec << std::endl
             << std::endl;
 
+
         auto H = Module::getHomography(Base_clock, Now_clock);
-
         Module::pose r = Module::decomposeHomography(H, A);
-
         std::cout << "Homography分解で得られた並進ベクトル(world)" << std::endl
-                  << r.position << std::endl;
-        std::cout << "回転行列" << std::endl
-                  << r.orientation << std::endl;
+                  << r.position << std::endl
+                  << std::endl
+                  << "回転ベクトル" << std::endl
+                  << r.orientation << std::endl
+                  << std::endl;
 
-        cv::Mat R_calib = q.orientation * p.orientation.inv();
         cv::Mat R_estimated;
         cv::Rodrigues(r.orientation, R_estimated);
 
+        cv::Mat angle_error_mat = R_estimated * R_calib.inv();
+        cv::Mat angle_error;
+        cv::Rodrigues(angle_error_mat, angle_error);
+        double error = cv::norm(angle_error);
 
-        double angle_error = cv::determinant(R_estimated * R_calib.inv());
-        std::cout << std::fixed << std::setprecision(15) << angle_error << std::endl;
-
-        std::cout << cv::norm(calib_pos) << ',' << cv::norm(calib_pos - r.position) << std::endl;
+        std::cout << cv::norm(calib_pos) << ',' << cv::norm(calib_pos - r.position) << std::endl
+                  << cv::norm(r.orientation) * 180.0 / CV_PI << ' ' << cv::norm(rvec) * 180.0 / CV_PI << ' ' << error * 180.0 / CV_PI << std::endl;
 
         if (cv::norm(calib_pos) > cv::norm(calib_pos - r.position)) {
-            ofs << i << ',' << cv::norm(calib_pos) << ',' << cv::norm(calib_pos - r.position) << ',' << angle_error
-                << ',' << std::endl;
+            ofs << i << ',' << r.position << std::endl;
+            //            ofs << i << ',' << cv::norm(calib_pos) << ',' << cv::norm(calib_pos - r.position) << ',' << cv::norm(calib_pos - r.position) / cv::norm(calib_pos) << ',' << cv::norm(r.orientation) * 180.0 / CV_PI << ',' << cv::norm(rvec) * 180.0 / CV_PI << ',' << error * 180.0 / CV_PI << ',' << std::endl;
+
+        } else {
+            failure++;
+            ofs2 << i << ',' << failure << ',' << cv::norm(calib_pos) << ',' << std::endl;
         }
     }
     return 0;
@@ -144,9 +139,7 @@ int main(int argc, char** argv)
     feature->detectAndCompute(temp, cv::Mat(), keypoints1, descriptors1);
 
 
-    cv::Mat meter = cv::imread("../pictures/meter_experiment/pic79.JPG", 1);
-    cv::imshow("j", meter);
-    cv::waitKey();
+    cv::Mat meter = cv::imread("../pictures/meter_experiment/pic66.JPG", 1);
 
     Template::readMeter(meter);
 
