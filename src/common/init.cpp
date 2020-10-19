@@ -38,6 +38,7 @@ int parseInit()
 
     std::ostringstream ostr2;
     ostr2 << filepath1 << "/list.xml";
+    //list.xmlは適当に決めた値なので，使わない
 
 
     cv::FileStorage fs2(ostr2.str(), cv::FileStorage::READ);
@@ -51,8 +52,9 @@ int parseInit()
     //posをCamera1 Coordinateに変換
     t = R * pos;
 
+    std::cout << "init ok" << std::endl;
     return 0;
-}  // namespace Init
+}
 
 cv::Mat input_render(std::string s, int num)
 {

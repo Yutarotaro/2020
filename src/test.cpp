@@ -27,8 +27,12 @@ cv::Mat temp;
 std::vector<cv::KeyPoint> keypoints1;
 cv::Mat descriptors1;
 
+std::vector<cv::KeyPoint> keypointsP;
+cv::Mat descriptorsP;
+
 std::vector<cv::Point> featurePoint;
 cv::Mat H;
+cv::Mat HP;
 
 int main(int argc, char** argv)
 {
@@ -38,7 +42,8 @@ int main(int argc, char** argv)
 #if 1
 
     cv::Mat Base_calib = cv::imread("../pictures/meter_experiment/pic-1.JPG", 1);
-    cv::Mat Base_clock_tmp = cv::imread("../pictures/meter_experiment/pic-1.JPG", 1);
+    cv::Mat Base_clock_tmp = cv::imread("../pictures/meter_experiment/pic-2.JPG", 1);
+    std::cout << "pic-2" << std::endl;
     cv::Mat mask = cv::Mat::zeros(Base_clock_tmp.rows, Base_clock_tmp.cols, CV_8UC1);
     cv::circle(mask, cv::Point(Base_clock_tmp.cols / 2 + 90, Base_clock_tmp.rows / 2 - 120), 360, cv::Scalar(255), -1, CV_AA);
     //    cv::circle(mask, cv::Point(1290, 2207), 370, cv::Scalar(255), -1, CV_AA);
@@ -59,14 +64,15 @@ int main(int argc, char** argv)
 
     cv::Mat rvec;  //回転ベクトル
 
-    int total = 126;
+    int st = 0;
+    int to = 125;
 
-
-    std::ofstream ofs("./result.csv");
+    std::ofstream ofs("./result455forpresentation.csv");
     std::ofstream ofs2("./failure.csv");
     int failure = 0;  //i = 54をcountしている
+    int ct = 0;
 
-    for (int i = 0; i < total; i++) {
+    for (int i = st; i <= to; i++) {
         std::cout << std::endl
                   << i + 1 << "回目" << std::endl;
         std::string path = "../pictures/meter_experiment/pic" + std::to_string(i) + ".JPG";
@@ -107,18 +113,22 @@ int main(int argc, char** argv)
         cv::Rodrigues(angle_error_mat, angle_error);
         double error = cv::norm(angle_error);
 
-        std::cout << cv::norm(calib_pos) << ',' << cv::norm(calib_pos - r.position) << std::endl
+        std::cout << "dist by calib(mm) = " << cv::norm(calib_pos) << std::endl
+                  << "error dist(mm) = " << cv::norm(calib_pos - r.position) << std::endl
                   << cv::norm(r.orientation) * 180.0 / CV_PI << ' ' << cv::norm(rvec) * 180.0 / CV_PI << ' ' << error * 180.0 / CV_PI << std::endl;
 
-        if (cv::norm(calib_pos) > cv::norm(calib_pos - r.position)) {
-            ofs << i << ',' << r.position << std::endl;
-            //            ofs << i << ',' << cv::norm(calib_pos) << ',' << cv::norm(calib_pos - r.position) << ',' << cv::norm(calib_pos - r.position) / cv::norm(calib_pos) << ',' << cv::norm(r.orientation) * 180.0 / CV_PI << ',' << cv::norm(rvec) * 180.0 / CV_PI << ',' << error * 180.0 / CV_PI << ',' << std::endl;
+        if (cv::norm(calib_pos) < 1000)
+            ct++;
+        if (cv::norm(calib_pos) < 1000 && cv::norm(calib_pos) > cv::norm(calib_pos - r.position)) {
+            //            ofs << i << ',' << r.position << std::endl;
+            ofs << i << ',' << cv::norm(calib_pos) << ',' << cv::norm(calib_pos - r.position) << ',' << cv::norm(calib_pos - r.position) / cv::norm(calib_pos) << ',' << cv::norm(r.orientation) * 180.0 / CV_PI << ',' << cv::norm(rvec) * 180.0 / CV_PI << ',' << error * 180.0 / CV_PI << ',' << std::endl;
 
         } else {
             failure++;
             ofs2 << i << ',' << failure << ',' << cv::norm(calib_pos) << ',' << std::endl;
         }
     }
+    std::cout << "total number of images under 1000mm" << ct << std::endl;
     return 0;
 
 /*

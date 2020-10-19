@@ -13,8 +13,7 @@ add_definitions( -std=c++17 -Wall )
 
 add_executable(main main.cpp pos/fromtwo.cpp pos/module.cpp pos/calib.cpp read/difference.cpp read/template.cpp common/init.cpp)
 add_executable(test test.cpp pos/fromtwo.cpp pos/module.cpp pos/calib.cpp read/difference.cpp read/template.cpp common/init.cpp)
-add_executable(fitEllipse fitEllipse.cpp pos/fromtwo.cpp fitting/fit.cpp pos/module.cpp pos/calib.cpp read/difference.cpp read/template.cpp common/init.cpp)
-add_executable(edgeTest edgeTest.cpp pos/fromtwo.cpp fitting/fit.cpp pos/module.cpp pos/calib.cpp read/difference.cpp read/template.cpp common/init.cpp)
+add_executable(fitEllipse fitEllipse.cpp pos/fromtwo.cpp sub/fit.cpp pos/module.cpp pos/calib.cpp read/difference.cpp read/readability.cpp read/template.cpp common/init.cpp)
 add_executable(setting setting.cpp)
 
 # Include directories for this project
@@ -42,11 +41,10 @@ if(OpenCV_FOUND)
     target_include_directories(test PUBLIC ${OpenCV_INCLUDE_DIRS})
     target_link_libraries(test ${OpenCV_LIBS})
     target_include_directories(fitEllipse PUBLIC ${OpenCV_INCLUDE_DIRS})
-    target_link_libraries(fitEllipse ${OpenCV_LIBS})
-    target_include_directories(edgeTest PUBLIC ${OpenCV_INCLUDE_DIRS})
-    target_link_libraries(edgeTest ${OpenCV_LIBS})
+   target_link_libraries(fitEllipse ${OpenCV_LIBS})
     target_include_directories(setting PUBLIC ${OpenCV_INCLUDE_DIRS})
     target_link_libraries(setting ${OpenCV_LIBS})
 endif()
 
-
+include_directories("/usr/local/Cellar/tesseract/4.1.1/include")
+include_directories("/usr/local/Cellar/leptonica/1.80.0/include")

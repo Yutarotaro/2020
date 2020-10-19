@@ -1,16 +1,12 @@
 #include "Eigen/Dense"
 #include "common/init.hpp"
-#include "fitting/fit.hpp"
-#include "opencv2/calib3d.hpp"
-#include "opencv2/core.hpp"
-#include "opencv2/features2d.hpp"
-#include "opencv2/highgui.hpp"
-#include "opencv2/xfeatures2d.hpp"
 #include "pos/calib.hpp"
 #include "pos/fromtwo.hpp"
 #include "pos/module.hpp"
 #include "read/difference.hpp"
+#include "read/readability.hpp"
 #include "read/template.hpp"
+#include "sub/fit.hpp"
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
@@ -29,9 +25,14 @@ cv::Mat temp;
 std::vector<cv::KeyPoint> keypoints1;
 cv::Mat descriptors1;
 
+std::vector<cv::KeyPoint> keypointsP;
+cv::Mat descriptorsP;
+
 std::vector<cv::Point> featurePoint;
+std::vector<cv::Point> featurePoint2;
 
 cv::Mat H;
+cv::Mat HP;
 
 Eigen::Matrix<float, 6, 1> param;
 
@@ -42,48 +43,38 @@ int main(int argc, char** argv)
     //parameter
     Init::parseInit();
 
-
     cv::Mat Base_calib = cv::imread("../pictures/meter_experiment/pic-1.JPG", 1);
-    cv::Mat Base_clock_tmp = cv::imread("../pictures/meter_experiment/pic-1.JPG", 1);
-    cv::Mat mask = cv::Mat::zeros(Base_clock_tmp.rows, Base_clock_tmp.cols, CV_8UC1);
-    //cv::circle(mask, cv::Point(Base_clock_tmp.cols / 2 + 90, Base_clock_tmp.rows / 2 - 120), 360, cv::Scalar(255), -1, CV_AA);
-    cv::circle(mask, cv::Point(2214, 1294), 330, cv::Scalar(255), -1, CV_AA);
+    cv::Mat Base_clock_tmp = cv::imread("../pictures/meter_experiment/pic-3.JPG", 1);
+    //    Base_clock_tmp.copyTo(Base_clock_tmp_pointer);
 
-    cv::Mat Base_clock;
+    //文字盤以外にマスクをかける処理
+    cv::Mat mask = cv::Mat::zeros(Base_clock_tmp.rows, Base_clock_tmp.cols, CV_8UC1);
+    cv::circle(mask, cv::Point(2214, 1294), 310, cv::Scalar(255), -1, CV_AA);
+
+    cv::Mat Base_clock;  //メータ領域だけを残した基準画像
     Base_clock_tmp.copyTo(Base_clock, mask);
 
-    /*
-    cv::Mat grays;
-    cv::cvtColor(Base_clock, grays, CV_BGR2GRAY);
+    cv::Rect roi_temp(cv::Point(1899, 979), cv::Size(620, 620));  //基準画像におけるメータ文字盤部分の位置
+    temp = Base_clock(roi_temp);
+    ///////////////////////////////
 
-    cv::medianBlur(grays, grays, 35);
+    //針以外にマスクをかける処理
+    cv::Mat maskp = cv::Mat::zeros(Base_clock_tmp.rows, Base_clock_tmp.cols, CV_8UC1);
+    cv::ellipse(maskp, cv::Point(2179, 1284), cv::Size(230, 45), 16, 0, 360, cv::Scalar(255), -1, CV_AA);
+    cv::Mat onlyPointer;
+    Base_calib.copyTo(onlyPointer, maskp);
+    ///////////////////////////////
 
-    std::vector<cv::Vec3f> circles2;
-    cv::HoughCircles(grays, circles2, cv::HOUGH_GRADIENT,
-        2, grays.rows / 4, 300, 120, fmin(grays.rows, grays.cols) / 16, fmin(grays.rows, grays.cols) / 2);
-    
-
-
-    for (int i = 0; i < circles2.size(); ++i) {
-        cv::Point2d center = cv::Point2d(cvRound(circles2[i][0]), cvRound(circles2[i][1]));
-        int radius = cvRound(circles2[i][2]);
-        if (center.x > grays.cols / 2 - 300 && center.x < grays.cols / 2 + 300 && center.y > grays.rows / 2 - 300 && center.y < grays.rows / 2 + 300) {
-            cv::circle(Base_clock, center, radius, cv::Scalar(0, 0, 255), 3, 8, 0);
-        }
-        std::cout << "center" << center << std::endl;
-    }
-
-    cv::imshow("nn", Base_clock);
-    cv::waitKey();
-
-
-    return 0;
-*/
+    cv::imshow("pointer", onlyPointer);
 
     //基準画像の特徴点を事前に検出しておく
     cv::Ptr<cv::Feature2D> feature;
     feature = cv::AKAZE::create();
     feature->detectAndCompute(Base_clock, cv::Mat(), keypoints1, descriptors1);
+
+    //    cv::Ptr<cv::Feature2D> featureP;
+    //    featureP = cv::AKAZE::create();
+    //    featureP->detectAndCompute(onlyPointer, cv::Mat(), keypointsP, descriptorsP);
 
 
     Module::pose p;
@@ -94,24 +85,38 @@ int main(int argc, char** argv)
     int total = 126;
 
 
-    int st = 79;
-    int to = 90;
+    int st = (argc == 3 ? std::stoi(argv[2]) : 61);  //start
+    int to = 90;                                     //end
 
 
-    for (int i = 0; i < total; i++) {
-        if (i < st || i > to) {
+    for (int i = st; i <= to; ++i) {
+        if (i == 60 || i == 67)
             continue;
-        }
 
         featurePoint.clear();          //特徴点ベクトルの初期化
         featurePoint.shrink_to_fit();  //メモリの開放
+
+        ////for more accurate Homography
+        featurePoint2.clear();          //特徴点ベクトルの初期化
+        featurePoint2.shrink_to_fit();  //メモリの開放
+
 
         std::cout << std::endl
                   << i + 1 << "回目" << std::endl;
         std::string path = "../pictures/meter_experiment/pic" + std::to_string(i) + ".JPG";
 
-        cv::Mat Now_calib = cv::imread(path, 1);
-        cv::Mat Now_clock = cv::imread(path, 1);
+        cv::Mat Now_calib = cv::imread(path, 1);    //for calibration
+        cv::Mat Now_clock_o = cv::imread(path, 1);  //for matching
+
+        //occlusion
+        cv::Mat masko = cv::Mat::zeros(Now_clock_o.rows, Now_clock_o.cols, CV_8UC1);
+        cv::circle(masko, cv::Point(2291, 1468), 30, cv::Scalar(255), 1, CV_AA);
+
+        cv::Mat Now_clock;
+        //        Now_clock_o.copyTo(Now_clock, masko);
+        Now_clock_o.copyTo(Now_clock);
+
+
         Module::pose q;
         Calib::calibration(Now_calib, q);  //qに対象画像のカメラ視点，位置が入る
 
@@ -123,6 +128,7 @@ int main(int argc, char** argv)
         H = Module::getHomography(Base_clock, Now_clock);
         Module::pose r = Module::decomposeHomography(H, A);
 
+        //        HP = Module::getHomographyP(onlyPointer, Now_clock);
 
         cv::Mat R_estimated;
         cv::Rodrigues(r.orientation, R_estimated);
@@ -133,7 +139,7 @@ int main(int argc, char** argv)
 
 
         /////////////////////////////////////////////////////
-        //fitting of ellipses
+        //トリミング
 
         int x_max = 0, x_min = Now_clock.rows, y_max = 0, y_min = Now_clock.cols;
         for (int i = 0; i < featurePoint.size(); ++i) {
@@ -150,42 +156,82 @@ int main(int argc, char** argv)
             if (now.y > y_max) {
                 y_max = now.y;
             }
-            //     cv::circle(Now_clock, featurePoint[i], 2, cv::Scalar(0, 0, 255), -1, CV_AA);
+            //            cv::circle(Now_clock, featurePoint[i], 2, cv::Scalar(0, 0, 255), -1, CV_AA);
+            //            マッチング点の描画
         }
+
+
+        cv::Mat img = Now_clock.clone();
+        cv::Rect brect = cv::boundingRect(cv::Mat(featurePoint).reshape(2));
+        cv::rectangle(img, cv::Point(brect.tl().x - 100, brect.tl().y - 100), cv::Point(brect.br().x + 100, brect.br().y + 100), cv::Scalar(190, 30, 100), 2, CV_AA);
+        //cv::imshow("trimmed", img);
+
 
         int margin = (x_max - x_min) / 1.5;
         cv::Mat NowWithMask;
         cv::Mat mask = cv::Mat::zeros(Base_clock_tmp.rows, Base_clock_tmp.cols, CV_8UC1);
-        cv::rectangle(mask, cv::Point(x_min - margin, y_min - margin), cv::Point(x_max + margin, y_max + margin), cv::Scalar(255), -2, CV_AA);
+        //        cv::rectangle(mask, cv::Point(x_min - margin, y_min - margin), cv::Point(x_max + margin, y_max + margin), cv::Scalar(255), -2, CV_AA);
+        cv::rectangle(mask, cv::Point(brect.tl().x - 100, brect.tl().y - 100), cv::Point(brect.br().x + 100, brect.br().y + 100), cv::Scalar(255), -2, CV_AA);  //特徴点の最小外接矩形より少し大きい矩形でトリミング
+
 
         Now_clock.copyTo(NowWithMask, mask);
 
         cv::imshow("n", NowWithMask);
 
+        //cv::Rect roi(cv::Point(brect.tl().x - 100, brect.tl().y - 100), cv::Size(brect.br().x - brect.tl().x + 200, brect.br().y - brect.tl().y + 200));
+        //cv::Mat subImg = Now_clock(roi);  // 切り出し画像
+
+        cv::Mat sub_dst = cv::Mat::zeros(Now_clock.rows, Now_clock.cols, CV_8UC3);
+        cv::warpPerspective(Now_clock, sub_dst, H.inv(), sub_dst.size());
+
+        cv::Rect roi2(cv::Point(1899, 979), cv::Size(620, 620));  //基準画像におけるメータ文字盤部分の位置
+        cv::Mat right = sub_dst(roi2);                            // 切り出し画像
+
+        cv::imshow("perspective transform", right);
+
+        cv::imwrite("./right/" + std::to_string(i) + ".png", right);
+
+
+        std::cout << H << std::endl
+                  << Module::remakeHomography() << std::endl;
+
+
+        //2段階homography
+        std::vector<cv::KeyPoint> keypointsR;
+        cv::Mat descriptorsR;
+
+        cv::Ptr<cv::Feature2D> featureR;
+        featureR = cv::AKAZE::create();
+        featureR->detectAndCompute(right, cv::Mat(), keypointsR, descriptorsR);
+
+
+        cv::Mat HR = Module::getHomography(keypointsR, descriptorsR, right, temp);
+
+        cv::Mat right_modified = cv::Mat::zeros(right.rows, right.cols, CV_8UC3);
+        cv::warpPerspective(right, right_modified, HR.inv(), right_modified.size());
+
+
+        cv::Mat dif;
+        cv::absdiff(right, right_modified, dif);
+
+        cv::imshow("right_modified", right_modified);
+        cv::imshow("right_diff", dif);
+
+        //可読性判定part
+        Readability::judge(right, i);
+        Readability::judge(right_modified, i);
+        //Readability::read(subImg);
+
+        if (argc < 2) {
+            cv::waitKey();
+        }
         cv::Mat gray;
         cv::cvtColor(NowWithMask, gray, CV_BGR2GRAY);
 
 
-        /*        cv::Mat cut, bgdmodel, fgdmodel, dst1, dst2, dstgray;
-        cv::grabCut(Now_clock, cut, cv::Rect(x_min - margin, y_min - margin, x_max + margin, y_max + margin), bgdmodel, fgdmodel, 1, cv::GC_INIT_WITH_RECT);
-        cv::compare(cut,    // マスク画像
-            cv::GC_PR_FGD,  // 前景かもしれないピクセル
-            dst1,
-            cv::CMP_EQ  // 一致しているピクセルを取得
-        );
+        continue;
 
 
-        dst2 = cv::Mat(dst1.rows, dst1.cols, CV_8UC3);
-        int from_to[] = {0, 2, 0, 1, 0, 0};
-        cv::mixChannels(&dst1, 1, &dst2, 1, from_to, 3);
-        cv::cvtColor(dst2, dstgray, CV_BGR2GRAY);
-
-        cv::imshow("cut", dstgray);
-        
-        cv::waitKey();
-        return 0;
-*/
-        //       goto SKIP;
 #if 1
         cv::Canny(gray, gray, 20, 155);
 #else
@@ -200,7 +246,6 @@ int main(int argc, char** argv)
         cv::adaptiveThreshold(gray, gray, maxval, method, type, blocksize, C);
 #endif
 
-        //  SKIP:
 
         std::vector<std::vector<cv::Point>> contours;
         std::vector<cv::Vec4i> hierarchy;
