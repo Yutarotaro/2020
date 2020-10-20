@@ -337,6 +337,7 @@ cv::Mat remakeHomography()
 
     std::vector<cv::Mat> Rs_decomp, ts_decomp, normals_decomp;
 
+
     //solutionsの個数が解の個数(それはそう)
     int solutions = cv::decomposeHomographyMat(H, A, Rs_decomp, ts_decomp, normals_decomp);
 
@@ -355,7 +356,7 @@ cv::Mat remakeHomography()
     for (int i = 0; i < solutions; i++) {
         cv::Rodrigues(Rs_decomp[i], rvec_decomp);
 
-        if (false) {
+        if (true) {
             std::cout << "Solution " << i << ":" << std::endl;
             std::cout << "rvec from homography decomposition: " << rvec_decomp.t() << std::endl;
 
@@ -366,8 +367,8 @@ cv::Mat remakeHomography()
                       << std::endl;
         }
 
-        //        std::cout << i << "th Homography\n"
-        //                  << Rs_decomp[i] + ts_decomp[i] * normals_decomp[i].t() << std::endl;
+        std::cout << i << "th Homography\n"
+                  << Rs_decomp[i] + ts_decomp[i] * normals_decomp[i].t() << std::endl;
 
         double tmp = normals_decomp[i].dot(z_axis);
 
@@ -381,8 +382,9 @@ cv::Mat remakeHomography()
     //    normals_decomp[index].at<double>(2, 0) *= -1.;
     //   ts_decomp[index].at<double>(2, 0) *= -1.;
 
+    std::cout << "H = " << H << std::endl;
     cv::Mat new_H = Rs_decomp[index] + ts_decomp[index] * normals_decomp[index].t();
-    //new_H /= new_H.at<double>(2, 2); //正規化
+    new_H /= new_H.at<double>(2, 2);  //正規化
     return new_H;
 }
 }  // namespace Module
