@@ -208,7 +208,7 @@ int main(int argc, char** argv)
         cv::Mat HR = Module::getHomography(keypointsR, descriptorsR, right, temp);
 
         cv::Mat right_modified = cv::Mat::zeros(right.rows, right.cols, CV_8UC3);
-        cv::warpPerspective(right, right_modified, HR.inv(), right_modified.size());
+        cv::warpPerspective(right, right_modified, HR, right_modified.size());
 
 
         cv::Mat dif;

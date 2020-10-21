@@ -356,7 +356,7 @@ cv::Mat remakeHomography()
     for (int i = 0; i < solutions; i++) {
         cv::Rodrigues(Rs_decomp[i], rvec_decomp);
 
-        if (true) {
+        if (false) {
             std::cout << "Solution " << i << ":" << std::endl;
             std::cout << "rvec from homography decomposition: " << rvec_decomp.t() << std::endl;
 
@@ -367,8 +367,8 @@ cv::Mat remakeHomography()
                       << std::endl;
         }
 
-        std::cout << i << "th Homography\n"
-                  << Rs_decomp[i] + ts_decomp[i] * normals_decomp[i].t() << std::endl;
+        //        std::cout << i << "th Homography\n"
+        //                 << Rs_decomp[i] + ts_decomp[i] * normals_decomp[i].t() << std::endl;
 
         double tmp = normals_decomp[i].dot(z_axis);
 
