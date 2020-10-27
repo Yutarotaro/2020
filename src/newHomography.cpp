@@ -14,10 +14,6 @@
 #include <string>
 #include <vector>
 
-#define filepath1 "/Users/yutaro/research/2020/src/"
-#define filepath2 "/Users/yutaro/research/2020/src/pictures/"
-
-
 std::string picdir = "meter_experiment";
 
 cv::Mat A;  //カメラ行列
@@ -63,25 +59,11 @@ int main(int argc, char** argv)
     int record;
     std::cin >> record;
 
-
-    std::ostringstream ostr;
-    ostr << filepath1 << "build/condition.xml";
-    cv::FileStorage fs(ostr.str(), cv::FileStorage::READ);
-    if (!fs.isOpened()) {
-        std::cerr << "condition.xml can not be opened." << std::endl;
-    }
-
-    //    picdir = std::to_string(fs["pic_dir"]);
-
-    //    std::ostringstream ostr2;
-    //   ostr2 << filepath2 << "/A" << std::to_string((int)fs[s][0]) << "/pic" << std::to_string((int)fs[s][1]) << ".jpg";
-
     //parameter
     Init::parseInit();
 
-    cv::Mat Base_calib = cv::imread(filepath2 + picdir + "/pic-1.JPG", 1);
+    cv::Mat Base_calib = cv::imread("../pictures/" + picdir + "/pic-1.JPG", 1);
     cv::Mat Base_clock_tmp = cv::imread("../pictures/" + picdir + "/pic-3.JPG", 1);
-    //    Base_clock_tmp.copyTo(Base_clock_tmp_pointer);
 
     //文字盤以外にマスクをかける処理
     cv::Mat mask = cv::Mat::zeros(Base_clock_tmp.rows, Base_clock_tmp.cols, CV_8UC1);

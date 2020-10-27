@@ -12,15 +12,25 @@
 
 using namespace cv;
 
+//////////////読み取りのパラメータ
+double front = 25.2;         //正面から読んだときの値
+double front_rad = 1.81970;  //正面のときの針の傾き[rad]
+double k = 80. / CV_PI;      //1degに対する温度変化率
+
+
+//
+
 extern cv::Mat temp;
 extern cv::Mat H;
+extern int it;
+extern int type;
 
 namespace Readability
 {
 //tesseract::TessBaseAPI* api = new tesseract::TessBaseAPI();
 //auto ocr = std::make_unique<tesseract::TessBaseAPI>();
 
-int judge(cv::Mat img, int num, int flag)
+double judge(cv::Mat img, int num, int flag)
 {
 
     cv::Mat tmp[3];
@@ -72,18 +82,24 @@ int judge(cv::Mat img, int num, int flag)
 
     int iter = 2;
     cv::Mat res;
+
+    //TODO:2値化してxorとりたい
+
     cv::absdiff(now_circle, temp, res);
     //    cv::bitwise_xor(temp, now_circle, res);
+
+    //unsharp mask
+    const float k = -1.0;
+    Mat sharpningKernel4 = (Mat_<float>(3, 3) << 0.0, k, 0.0, k, 5.0, k, 0.0, k, 0.0);
+    Mat sharpningKernel8 = (Mat_<float>(3, 3) << k, k, k, k, 9.0, k, k, k, k);
+
+    // 先鋭化フィルタを適用する
+    //    cv::filter2D(res, res, res.depth(), sharpningKernel8);
 
 
     //processing
     cv::erode(res, res, cv::Mat(), cv::Point(-1, -1), iter);
     cv::dilate(res, res, cv::Mat(), cv::Point(-1, -1), iter);
-
-    int n = 3;
-    //    cv::bilateralFilter(res, res, n, n * 2, n / 2);
-
-    //    cv::GaussianBlur(res, res, cv::Size(n, n), 0, 0);
 
     cv::Mat gray;
     cv::cvtColor(res, gray, CV_BGR2GRAY);
@@ -92,11 +108,14 @@ int judge(cv::Mat img, int num, int flag)
 
     //    cv::imshow("diff", res);
     //   cv::imshow("edge", gray);
-    cv::imwrite("./diff/xor" + std::to_string(num) + (flag ? "HR" : "HR.inv()") + ".png", res);
+    cv::imwrite("./diff/xor" + std::to_string(num) + (flag ? "HR" : "HR.inv()") + (type ? "pointer" : "normal") + ".png", res);
 
+    double value = 0.;
     if (flag) {
-        read(res);
+        value = read(res);
     }
+
+    return value;
 
 #if 0
     std::vector<std::vector<cv::Point>> contours;
@@ -175,6 +194,57 @@ int judge(cv::Mat img, int num, int flag)
     return 0;
 }
 
+std::pair<double, cv::Mat> pointerDetection(cv::Mat src)
+{
+    cv::Mat ret;
+    src.copyTo(ret);
+    cv::cvtColor(ret, ret, CV_GRAY2BGR);
+
+    std::vector<cv::Vec3f> lines;
+    int votes = 50;
+    cv::HoughLines(src, lines, 1, 0.00001 /*CV_PI / 720.*/, votes, 0, 0);
+
+    std::cout << "Number of detected lines" << lines.size() << std::endl;
+
+    int tmp = 0;
+    int index = 0;
+    double eps = 0.1;
+    double value = 0.;
+
+    if (lines.size()) {
+        for (size_t i = 0; i < lines.size(); ++i) {
+            if (lines[i][2] > tmp && std::abs(lines[i][1] - CV_PI / 2.) > eps) {
+                index = i;
+                tmp = lines[i][2];
+            }
+        }
+
+        float rho = lines[index][0], theta = lines[index][1];
+        std::cout << index << "-th " << lines[index][2] << " votes" << std::endl
+                  << lines[index][1] << " [rad]" << lines[index][1] * 180. / CV_PI << " [deg]" << std::endl;
+        cv::Point pt1, pt2;
+        double a = std::cos(theta), b = std::sin(theta);
+        double x0 = a * rho, y0 = b * rho;
+        pt1.x = cvRound(x0 + 1000 * (-b));
+        pt1.y = cvRound(y0 + 1000 * (a));
+        pt2.x = cvRound(x0 - 1000 * (-b));
+        pt2.y = cvRound(y0 - 1000 * (a));
+        cv::line(ret, pt1, pt2, cv::Scalar(0, 0, 255), 2, cv::LINE_AA);
+        value = lines[index][1];
+    }
+
+    //この時点でvalueはrad
+    //degに変更
+
+    value = front + k * (value - front_rad);
+
+    cv::imwrite("./reading/no" + std::to_string(it) + (type ? "pointer" : "normal") + "_" + std::to_string(value) + ".png", ret);
+
+
+    return {value, ret};
+}
+
+
 double read(cv::Mat src)
 {
     cv::Mat gray;
@@ -185,13 +255,36 @@ double read(cv::Mat src)
 
     cv::imshow("grayscale", gray);
 
+    cv::Mat bin;
+    double thresh = 70;
+    double maxval = 255;
+    int type = cv::THRESH_BINARY;
+    cv::threshold(gray, bin, thresh, maxval, type);
+
+
+    int iter = 10;
+    cv::dilate(bin, bin, cv::Mat(), cv::Point(-1, -1), iter);
+    cv::erode(bin, bin, cv::Mat(), cv::Point(-1, -1), iter);
+
+
     //細線化
-    cv::ximgproc::thinning(gray, gray, cv::ximgproc::WMF_EXP);
-    //    Thinning(gray);
+    cv::ximgproc::thinning(bin, bin, cv::ximgproc::WMF_EXP);
+
+    cv::imshow("thinning", bin);
+    cv::imwrite("./thinning/" + std::to_string(it) + (type ? "pointer" : "normal") + ".png", bin);
+
+    cv::Rect roi(cv::Point(220, 220), cv::Size(280, 280));
+    cv::Mat pointerImage = bin(roi);  // 切り出し画像
+
+    //TODO:Hough Transform
+    //PCAにしたい
+    std::pair<double, cv::Mat> a = pointerDetection(pointerImage);
 
 
     //cv::imshow("temp", temp);
-    cv::imshow("thinning", gray);
+    //cv::imshow("pointer", lines);
+
     //    cv::waitKey();
+    return a.first;
 }
 }  // namespace Readability

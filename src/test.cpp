@@ -68,6 +68,7 @@ int main(int argc, char** argv)
     int to = 125;
 
     std::ofstream ofs("./result455forpresentation.csv");
+    //    std::ofstream ofs("./resultAHAinv.csv");
     std::ofstream ofs2("./failure.csv");
     int failure = 0;  //i = 54をcountしている
     int ct = 0;
@@ -97,6 +98,8 @@ int main(int argc, char** argv)
 
 
         auto H = Module::getHomography(Base_clock, Now_clock);
+
+
         Module::pose r = Module::decomposeHomography(H, A);
         std::cout << "Homography分解で得られた並進ベクトル(world)" << std::endl
                   << r.position << std::endl

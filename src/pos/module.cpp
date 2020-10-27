@@ -93,8 +93,6 @@ Mat getHomography(Mat Src1, Mat Src2)
         featurePoint.push_back(cv::Point(keypoints2[kp2_idx].pt.x, keypoints2[kp2_idx].pt.y));
     }
 
-    //std::cout << "featurePoint" << featurePoint << std::endl;
-
 
     cv::Mat drawmatch;
     cv::drawMatches(Src1, keypoints1, Src2, keypoints2, goodMatch, drawmatch);
@@ -309,7 +307,7 @@ pose decomposeHomography(cv::Mat H, cv::Mat A)
 }
 
 
-cv::Mat remakeHomography()
+cv::Mat remakeHomography(cv::Mat HG)
 {
 
     //針の浮き5mm
@@ -339,7 +337,7 @@ cv::Mat remakeHomography()
 
 
     //solutionsの個数が解の個数(それはそう)
-    int solutions = cv::decomposeHomographyMat(H, A, Rs_decomp, ts_decomp, normals_decomp);
+    int solutions = cv::decomposeHomographyMat(HG, A, Rs_decomp, ts_decomp, normals_decomp);
 
     //normals_decompが(0,0,1)に最も近いものを選択
 
@@ -377,14 +375,30 @@ cv::Mat remakeHomography()
             index = i;
         }
     }
+    std::cout << "R from homography decomposition: " << Rs_decomp[index].t() << std::endl;
+
+    std::cout << "tvec from homography decomposition: \n"
+              << ts_decomp[index].t() << " \n scaled by d:\n " << factor_d1 * ts_decomp[index].t() << std::endl
+              << std::endl;
+    std::cout << "plane normal from homography decomposition: " << normals_decomp[index].t() << std::endl
+              << std::endl;
+
+    //    std::cout << "t*n^T = " << ts_decomp[index] * normals_decomp[index].t() << std::endl;
 
 
-    //    normals_decomp[index].at<double>(2, 0) *= -1.;
-    //   ts_decomp[index].at<double>(2, 0) *= -1.;
+    std::cout << "H = \n"
+              << H << std::endl;
+    //cv::Mat new_H = Rs_decomp[index] * (cv::Mat::eye(3, 3, CV_64F) + ts_decomp[index] * normals_decomp[index].t());
 
-    std::cout << "H = " << H << std::endl;
+    //tの更新
+    ts_decomp[index] = factor_d1 / (factor_d1 + deviation) * ts_decomp[index];
     cv::Mat new_H = Rs_decomp[index] + ts_decomp[index] * normals_decomp[index].t();
+
+
+    new_H = A * new_H * A.inv();
     new_H /= new_H.at<double>(2, 2);  //正規化
+
+
     return new_H;
 }
 }  // namespace Module
