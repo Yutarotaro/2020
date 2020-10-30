@@ -9,6 +9,7 @@ using namespace cv;
 using namespace std;
 
 
+extern int it;
 extern cv::Mat A;
 extern cv::Mat distCoeffs;
 extern cv::Mat R;
@@ -104,7 +105,7 @@ Mat getHomography(Mat Src1, Mat Src2)
     //imwrite("../output/match_inlier.jpg", drawMatch_inlier);
 
     imshow("DrawMatch_inlier", drawMatch_inlier);
-    imwrite("./output/match_inlier.jpg", drawMatch_inlier);
+    imwrite("./diffjust/match/match_inlier_" + std::to_string(it) + ".png", drawMatch_inlier);
 #if 0
     imshow("Inliner", drawMatch_inlier);
     imwrite("./match_inliner.jpg", drawMatch_inlier);
@@ -191,7 +192,7 @@ Mat getHomography(vector<KeyPoint> keypoints, Mat descriptors, Mat Src1, Mat Src
     //imwrite("../output/match_inlier.jpg", drawMatch_inlier);
 
     imshow("DrawMatch_inlier_detail", drawMatch_inlier);
-    imwrite("./output/match_inlier_detail.jpg", drawMatch_inlier);
+    //imwrite("./output/match_inlier_detail" + std::to_string(it) + ".jpg", drawMatch_inlier);
 #if 0
     imshow("Inliner", drawMatch_inlier);  
     imwrite("./match_inliner.jpg", drawMatch_inlier);
@@ -311,7 +312,7 @@ cv::Mat remakeHomography(cv::Mat HG)
 {
 
     //針の浮き5mm
-    double deviation = 5.;
+    double deviation = 5.5;
 
     cv::Mat R1 = R;
     cv::Mat rvec1;
@@ -375,20 +376,6 @@ cv::Mat remakeHomography(cv::Mat HG)
             index = i;
         }
     }
-    std::cout << "R from homography decomposition: " << Rs_decomp[index].t() << std::endl;
-
-    std::cout << "tvec from homography decomposition: \n"
-              << ts_decomp[index].t() << " \n scaled by d:\n " << factor_d1 * ts_decomp[index].t() << std::endl
-              << std::endl;
-    std::cout << "plane normal from homography decomposition: " << normals_decomp[index].t() << std::endl
-              << std::endl;
-
-    //    std::cout << "t*n^T = " << ts_decomp[index] * normals_decomp[index].t() << std::endl;
-
-
-    std::cout << "H = \n"
-              << H << std::endl;
-    //cv::Mat new_H = Rs_decomp[index] * (cv::Mat::eye(3, 3, CV_64F) + ts_decomp[index] * normals_decomp[index].t());
 
     //tの更新
     ts_decomp[index] = factor_d1 / (factor_d1 + deviation) * ts_decomp[index];

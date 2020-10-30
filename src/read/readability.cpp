@@ -110,6 +110,8 @@ double judge(cv::Mat img, int num, int flag)
     //   cv::imshow("edge", gray);
     cv::imwrite("./diff/xor" + std::to_string(num) + (flag ? "HR" : "HR.inv()") + (type ? "pointer" : "normal") + ".png", res);
 
+    return 0;
+
     double value = 0.;
     if (flag) {
         value = read(res);
@@ -244,7 +246,7 @@ std::pair<double, cv::Mat> pointerDetection(cv::Mat src)
     return {value, ret};
 }
 
-
+//src: 差分とって，erode,dilateした後の画像を入力
 double read(cv::Mat src)
 {
     cv::Mat gray;

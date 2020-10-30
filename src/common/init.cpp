@@ -48,7 +48,6 @@ int parseInit()
     //    fs2["pos"] >> pos;
     //   fs2["R"] >> R;
 
-
     //posをCamera1 Coordinateに変換
     t = R * pos;
 

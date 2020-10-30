@@ -50,7 +50,7 @@ int it;
 //type 0: normal, 1: pointer_considered
 int type;
 
-int list[] = {5, 23, 32, 33, 34, 35, 40, 45, 46, 49, 50, 51, 53, 54, 55, 56, 57, 58, 61, 62, 63, 64, 65, 66, 68, 69, 70, 71, 72, 73, 74, 75, 76, 78, 79, 80, 81, 83, 84, 85, 86, 87, 88, 89, 91, 92, 93, 94, 95, 96, 97, 98, 99, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125};
+int list[] = {5, 23, 32, 33, 34, 35, 40, 45, 46, 49, 50, 51, 53, 54, 55, 56, 57, 58, 61, 62, 63, 64, 65, 66, 68, 69, 70, 71, 72, 73, 74, 75, 76, 78, 79, 80, 81, 83, 84, 85, 86, 87, 88, 89, 91, 92, 93, 94, 95, 96, 97, 98, 99, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 122, 123, 124, 125};
 
 int main(int argc, char** argv)
 {
@@ -128,20 +128,28 @@ int main(int argc, char** argv)
     std::ofstream ofs;
     if (record) {
         std::string t = (type ? "pointer" : "normal");
-        ofs.open("./reading/reading" + t + ".csv");
+        ofs.open("./reading/reading" + t + "opt.csv");
     }
 
-    for (int itt = 0; itt < 77; ++itt) {
+    ///////
+    double z = 449.35;
+    pos.at<double>(0, 2) = z;
+    t = R * pos;
+    ///////
+
+    //for (int itt = 0; itt < sizeof(list) / sizeof(list[0]); ++itt) {
+    for (int itt = 0; itt < 126; ++itt) {
         //for (it = st; it <= to; ++it) {
         //  if (it == 60 || it == 67 || it == 77)
         //    continue;
         //i = -1;
 
-        it = list[itt];
+        //it = list[itt];
+        it = itt;
 
-        if (it == list[0] && argc == 2) {
-            it = std::stoi(argv[1]);
-        }
+        //        if (it == list[0] && argc == 2) {
+        //          it = std::stoi(argv[1]);
+        //    }
 
         ////for more accurate Homography
         featurePoint2.clear();          //特徴点ベクトルの初期化
@@ -175,7 +183,6 @@ int main(int argc, char** argv)
         H = Module::getHomography(Base_clock, Now_clock);
         Module::pose r = Module::decomposeHomography(H, A);
 
-        //        HP = Module::getHomographyP(onlyPointer, Now_clock);
 
         cv::Mat R_estimated;
         cv::Rodrigues(r.orientation, R_estimated);
@@ -197,7 +204,13 @@ int main(int argc, char** argv)
         //cv::imshow("perspective transform", right);
 
         cv::imwrite("./right/" + std::to_string(it) + ".png", right);
+        cv::Mat diff;
+        cv::absdiff(right, temp, diff);
 
+        cv::imwrite("./difference/" + std::to_string(it) + ".png", diff);
+
+
+        continue;
 
         //cv::Mat new_H = Module::remakeHomography(H);
 
@@ -227,7 +240,9 @@ int main(int argc, char** argv)
         cv::Mat dif;
         cv::absdiff(right, right_modified, dif);
 
+
         cv::imshow("right_modified", right_modified);
+
         //        cv::imshow("right_diff", dif);
 
         //可読性判定part

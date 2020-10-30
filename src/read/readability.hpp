@@ -7,6 +7,7 @@ namespace Readability
 {
 double judge(cv::Mat src, int num, int flag);
 std::pair<double, cv::Mat> edgeDetection(cv::Mat img);
+std::pair<double, cv::Mat> pointerDetection(cv::Mat src);
 double read(cv::Mat src);
 }  // namespace Readability
 
