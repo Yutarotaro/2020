@@ -16,8 +16,6 @@
 #include <vector>
 
 
-std::string picdir = "meter_experiment";
-
 cv::Mat A;  //カメラ行列
 cv::Mat distCoeffs;
 cv::Mat R;    //基準姿勢
@@ -45,37 +43,45 @@ Eigen::Matrix<float, 6, 1> param;
 //テスト画像のindex
 int it;
 
+int meter_type;
+std::string meter_type_s;
 //type 0: normal, 1: pointer_considered
 int type;
+//record 0: no, 1:Yes
+int record;
+void message();
 
 int opt_list[] = {5, 40, 45, 63, 89, 97, 104, 106};
 
 
+class Params
+{
+public:
+    int thresh;          //2値化の閾値
+    int total;           //枚数
+    std::string picdir;  //ディレクトリ
+    cv::Point tl;        //左上
+    int l;               //矩形の大きさ
+};
+
+//0:T, 1:V
+Params params[] = {{70, 126, "meter_experiment", cv::Point(1899, 979), 620},
+    {100, 100, "meter_experiment_V", cv::Point(1899, 979), 620}};
+
+std::map<std::string, int> mp;
+
+
 int main(int argc, char** argv)
 {
-
-    std::cout << "choose type of homography \n 0:scale-based, 1:pointer based" << std::endl;
-    std::cin >> type;
-
-    std::cout << "record in csv file?\n 0:No, 1: Yes" << std::endl;
-    int record;
-    std::cin >> record;
-
+    message();
     //parameter
     Init::parseInit();
 
-    cv::Mat Base_calib = cv::imread("../pictures/" + picdir + "/pic-1.JPG", 1);
-    cv::Mat Base_clock_tmp = cv::imread("../pictures/" + picdir + "/pic-3.JPG", 1);
+    //image for pose estimation
+    cv::Mat Base_calib = cv::imread("../pictures/" + params[meter_type].picdir + "/pic-1.JPG", 1);
 
-    //文字盤以外にマスクをかける処理
-    cv::Mat mask = cv::Mat::zeros(Base_clock_tmp.rows, Base_clock_tmp.cols, CV_8UC1);
-    cv::circle(mask, cv::Point(2214, 1294), 310, cv::Scalar(255), -1, CV_AA);
-
-    cv::Mat Base_clock;  //メータ領域だけを残した基準画像
-    Base_clock_tmp.copyTo(Base_clock, mask);
-
-    cv::Rect roi_temp(cv::Point(1899, 979), cv::Size(620, 620));  //基準画像におけるメータ文字盤部分の位置
-    temp = Base_clock(roi_temp);
+    cv::Mat Base_clock = cv::imread("../pictures/meter_template/Base_clock" + meter_type_s + ".png", 1);
+    temp = cv::imread("../pictures/meter_template/temp" + meter_type_s + ".png", 1);
     ///////////////////////////////
 
 
@@ -84,18 +90,12 @@ int main(int argc, char** argv)
     feature = cv::AKAZE::create();
     feature->detectAndCompute(Base_clock, cv::Mat(), keypoints1, descriptors1);
 
-    int total = 126;
-
-
-    int st = (argc == 3 ? std::stoi(argv[2]) : 61);  //start
-    int to = 90;                                     //end
-
 
     //読み取り結果を記録
     std::ofstream ofs;
     if (record) {
         std::string t = (type ? "pointer" : "normal");
-        ofs.open("./diffjust/reading/reading" + t + ".csv");
+        ofs.open("./diffjust/" + meter_type_s + "/reading/reading" + t + ".csv");
     }
 
     ///////
@@ -105,15 +105,8 @@ int main(int argc, char** argv)
     ///////
 
 
-    //for (int itt = 0; itt < 77; ++itt) {
-    for (int itt = 0; itt < total; ++itt) {
-        //it = list[itt];
+    for (int itt = 0; itt < params[meter_type].total; ++itt) {
         it = itt;
-
-
-        if (argc == 2) {
-            it = std::stoi(argv[1]);
-        }
 
         ////for more accurate Homography
         featurePoint2.clear();          //特徴点ベクトルの初期化
@@ -121,16 +114,18 @@ int main(int argc, char** argv)
 
 
         std::cout << std::endl
+                  << "/////////////////////////////" << std::endl
                   << "picture " << it << std::endl;
-        std::string path = "../pictures/meter_experiment/pic" + std::to_string(it) + ".JPG";
+        std::string path = "../pictures/" + params[meter_type].picdir + "/pic" + std::to_string(it) + ".JPG";
 
         cv::Mat Now_clock_o = cv::imread(path, 1);  //for matching
 
 
         cv::Mat Now_clock;
-        //        Now_clock_o.copyTo(Now_clock, masko);
         Now_clock_o.copyTo(Now_clock);
 
+
+        //Homography: Template to Test
         H = Module::getHomography(Base_clock, Now_clock);
         /////////////////////////////////////////////////////
 
@@ -146,11 +141,11 @@ int main(int argc, char** argv)
             continue;
         }
 
-        cv::Rect roi2(cv::Point(1899, 979), cv::Size(620, 620));  //基準画像におけるメータ文字盤部分の位置
-        cv::Mat right = sub_dst(roi2);                            // 切り出し画像
+        cv::Rect roi2(params[meter_type].tl, cv::Size(params[meter_type].l, params[meter_type].l));  //基準画像におけるメータ文字盤部分の位置
+        cv::Mat right = sub_dst(roi2);                                                               // 切り出し画像
         //right: テスト画像を正面視点へ変換し，切り取ったもの
 
-        cv::imwrite("./diffjust/perspective/transformed" + std::to_string(it) + (type ? "pointer" : "normal") + ".png", right);
+        cv::imwrite("./diffjust/" + meter_type_s + "/perspective/transformed" + std::to_string(it) + (type ? "pointer" : "normal") + meter_type_s + ".png", right);
 
 
         //remakeHomographyを使う前提
@@ -176,7 +171,6 @@ int main(int argc, char** argv)
         try {
             cv::warpPerspective(temp, temp_modified, HR.inv(), temp_modified.size());
         } catch (cv::Exception& e) {
-
             if (record) {
                 ofs << it << ',' << 0 << std::endl;
             }
@@ -190,9 +184,9 @@ int main(int argc, char** argv)
 
         int d = 4;
         cv::Mat mask_for_dif = cv::Mat::zeros(diff.rows, diff.cols, CV_8UC1);
-        cv::circle(mask_for_dif, cv::Point(310, 310), 310 - d, cv::Scalar(255), -1, 0);
+        cv::circle(mask_for_dif, cv::Point(params[meter_type].l, params[meter_type].l), params[meter_type].l - d, cv::Scalar(255), -1, 0);
 
-        cv::Mat dif;  //メータ領域だけを残した基準画像
+        cv::Mat dif;  //meter領域のみ残した差分画像
         diff.copyTo(dif, mask_for_dif);
         ///////////////////
 
@@ -203,22 +197,23 @@ int main(int argc, char** argv)
 
         //binarization
         //改善の余地あり
+
         cv::Mat bin;
-        double thresh = 70;
-        double maxval = 255;
+        int maxval = 255;
         int thre_type = cv::THRESH_BINARY;
-        cv::threshold(graydiff, bin, thresh, maxval, thre_type);
+
+        cv::threshold(graydiff, bin, params[meter_type].thresh, maxval, thre_type);
 
 
         cv::imshow("dif", bin);
-        cv::imwrite("./diffjust/diff" + std::to_string(it) + (type ? "pointer" : "normal") + ".png", bin);
+        cv::imwrite("./diffjust/" + params[meter_type].picdir + "/diff/" + std::to_string(it) + (type ? "pointer" : "normal") + meter_type_s + ".png", bin);
 
         int iter = 0;
         cv::erode(bin, bin, cv::Mat(), cv::Point(-1, -1), iter);
         cv::dilate(bin, bin, cv::Mat(), cv::Point(-1, -1), iter);
 
         if (iter) {
-            cv::imwrite("./diffjust/mor" + std::to_string(it) + (type ? "pointer" : "normal") + ".png", bin);
+            cv::imwrite("./diffjust/" + params[meter_type].picdir + "/diff/mor/" + std::to_string(it) + (type ? "pointer" : "normal") + meter_type_s + ".png", bin);
         }
         cv::ximgproc::thinning(bin, bin, cv::ximgproc::WMF_EXP);
 
@@ -231,8 +226,9 @@ int main(int argc, char** argv)
         a.first = 0.;
         a = Readability::pointerDetection(pointerImage);
 
-        std::cout << it << "-th read value = " << a.first << std::endl;
-        cv::imwrite("./diffjust/reading/" + std::to_string(it) + (type ? "pointer" : "normal") + ".png", a.second);
+        std::cout << it << "-th read value = " << a.first << std::endl
+                  << "/////////////////////////////" << std::endl;
+        cv::imwrite("./diffjust/" + params[meter_type].picdir + "/reading/" + std::to_string(it) + (type ? "pointer" : "normal") + meter_type_s + ".png", a.second);
 
         if (record) {
             ofs << it << ',' << a.first << std::endl;
@@ -241,25 +237,24 @@ int main(int argc, char** argv)
         cv::waitKey(2);
 
         continue;
-        //可読性判定part
-        //Readability::judge(right, i);
-        //judge:(target image, number of trial, read or not)
-        //double value = Readability::judge(right_modified, it, 1);
-        double value = Readability::judge(right, it, 1);
-        if (record)
-            ofs << ',' << (double)value << ',' << std::endl;
-        std::cout << "value " << value << std::endl;
-
-        //Readability::read(subImg);
-
-        if (argc < 2) {
-            cv::waitKey();
-        }
-        cv::Mat gray;
-
-
-        continue;
     }
 
     return 0;
+}
+
+void message()
+{
+    mp["T"] = 0;
+    mp["D"] = 1;
+
+    std::cout << "type of analog meter: ThermoMeter -> T or Vacuum -> V" << std::endl;
+    std::cin >> meter_type_s;
+
+    meter_type = mp[meter_type_s];
+
+    std::cout << "choose type of homography \n 0:scale-based, 1:pointer based" << std::endl;
+    std::cin >> type;
+
+    std::cout << "record in csv file?\n 0:No, 1: Yes" << std::endl;
+    std::cin >> record;
 }
