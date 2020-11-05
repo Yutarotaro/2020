@@ -15,9 +15,10 @@ add_executable(tmp tmp.cpp pos/fromtwo.cpp pos/module.cpp pos/calib.cpp read/dif
 add_executable(test test.cpp pos/fromtwo.cpp pos/module.cpp pos/calib.cpp read/difference.cpp read/template.cpp common/init.cpp)
 add_executable(main main.cpp pos/fromtwo.cpp sub/fit.cpp pos/module.cpp pos/calib.cpp read/difference.cpp read/readability.cpp read/template.cpp common/init.cpp)
 add_executable(opt opt.cpp pos/fromtwo.cpp sub/fit.cpp pos/module.cpp pos/calib.cpp read/difference.cpp read/readability.cpp read/template.cpp common/init.cpp)
-add_executable(justRead justRead.cpp pos/fromtwo.cpp sub/fit.cpp pos/module.cpp pos/calib.cpp read/difference.cpp read/readability.cpp read/template.cpp common/init.cpp)
+add_executable(justRead ./AdaptiveIntegralThresholding/thresh.cpp justRead.cpp pos/fromtwo.cpp sub/fit.cpp pos/module.cpp pos/calib.cpp read/difference.cpp read/readability.cpp read/template.cpp common/init.cpp)
 add_executable(newHomography newHomography.cpp pos/fromtwo.cpp sub/fit.cpp pos/module.cpp pos/calib.cpp read/difference.cpp read/readability.cpp read/template.cpp common/init.cpp)
 add_executable(setting setting.cpp)
+add_executable(prepareTemplate prepareTemplate.cpp)
 
 # Include directories for this project
 set(INCLUDE_DIR
@@ -53,6 +54,8 @@ if(OpenCV_FOUND)
     target_link_libraries(newHomography ${OpenCV_LIBS})
     target_include_directories(setting PUBLIC ${OpenCV_INCLUDE_DIRS})
     target_link_libraries(setting ${OpenCV_LIBS})
+    target_include_directories(prepareTemplate PUBLIC ${OpenCV_INCLUDE_DIRS})
+    target_link_libraries(prepareTemplate ${OpenCV_LIBS})
 endif()
 
 include_directories("/usr/local/Cellar/tesseract/4.1.1/include")

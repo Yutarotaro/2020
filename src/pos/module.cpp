@@ -105,12 +105,9 @@ Mat getHomography(Mat Src1, Mat Src2)
     //imwrite("../output/match_inlier.jpg", drawMatch_inlier);
 
     imshow("DrawMatch_inlier", drawMatch_inlier);
-    imwrite("./diffjust/match/match_inlier_" + std::to_string(it) + ".png", drawMatch_inlier);
-#if 0
-    imshow("Inliner", drawMatch_inlier);
-    imwrite("./match_inliner.jpg", drawMatch_inlier);
-    cv::waitKey(0.1);
-#endif
+    imwrite("./diffjust/V/match/match_inlier_" + std::to_string(it) + ".png", drawMatch_inlier);
+
+
     return H;
 }
 
@@ -191,7 +188,7 @@ Mat getHomography(vector<KeyPoint> keypoints, Mat descriptors, Mat Src1, Mat Src
     cv::drawMatches(Src1, keypoints, Src2, keypoints2, inlierMatch, drawMatch_inlier);
     //imwrite("../output/match_inlier.jpg", drawMatch_inlier);
 
-    imshow("DrawMatch_inlier_detail", drawMatch_inlier);
+    //imshow("DrawMatch_inlier_detail", drawMatch_inlier);
     //imwrite("./output/match_inlier_detail" + std::to_string(it) + ".jpg", drawMatch_inlier);
 #if 0
     imshow("Inliner", drawMatch_inlier);  

@@ -13,12 +13,9 @@
 using namespace cv;
 
 //////////////読み取りのパラメータ
-double front = 25.2;         //正面から読んだときの値
-double front_rad = 1.81970;  //正面のときの針の傾き[rad]
-double k = 80. / CV_PI;      //1degに対する温度変化率
+extern int meter_type;
+extern Init::Params params[];
 
-
-//
 
 extern cv::Mat temp;
 extern cv::Mat H;
@@ -238,7 +235,7 @@ std::pair<double, cv::Mat> pointerDetection(cv::Mat src)
     //この時点でvalueはrad
     //degに変更
 
-    value = front + k * (value - front_rad);
+    value = params[meter_type].front_value + params[meter_type].k * (value - params[meter_type].front_rad);
 
     cv::imwrite("./reading/no" + std::to_string(it) + (type ? "pointer" : "normal") + "_" + std::to_string(value) + ".png", ret);
 
