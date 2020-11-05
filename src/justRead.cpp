@@ -72,11 +72,11 @@ public:
 
 //0:T, 1:V
 Init::Params params[] = {{70, 126, "meter_experiment", cv::Point(1899, 979), 620, 25.2, 1.81970, 80. / CV_PI},
-    {100, 65, "meter_experiment_V", cv::Point(1808, 1033), 680, -0.0101, CV_PI / 2. * 33 / 40., 33. * 0.002 / CV_PI}};
+    {100, 92, "meter_experiment_V", cv::Point(1808, 1033), 680, -0.0101, CV_PI / 2. * 33 / 40., 33. * 0.002 / CV_PI}};
 
 std::map<std::string, int> mp;
 
-int ite = 10;
+int ite = 3;
 
 
 int main(int argc, char** argv)
@@ -95,9 +95,9 @@ int main(int argc, char** argv)
     cv::Mat Base_clock = cv::imread("../pictures/meter_template/Base_clock" + meter_type_s + ".png", 1);
     temp = cv::imread("../pictures/meter_template/temp" + meter_type_s + ".png", 1);
 
-    cv::Mat hsv;
-    cv::cvtColor(temp, hsv, cv::COLOR_BGR2HSV);
-    cv::imshow("hsv", hsv);
+    //   cv::Mat hsv;
+    //  cv::cvtColor(temp, hsv, cv::COLOR_BGR2HSV);
+    //    cv::imshow("hsv", hsv);
 
     ///////////////////////////////
 
@@ -207,12 +207,14 @@ int main(int argc, char** argv)
         cv::cvtColor(right_modified, gray_right, cv::COLOR_BGR2GRAY);
         cv::Mat bwr = cv::Mat::zeros(gray_right.size(), CV_8UC1);
         Adaptive::thresholdIntegral(gray_right, bwr);
+        cv::erode(bwr, bwr, cv::Mat(), cv::Point(-1, -1), 1);
 
 
         cv::Mat gray_tempm;
         cv::cvtColor(temp, gray_tempm, cv::COLOR_BGR2GRAY);
         cv::Mat bwt = cv::Mat::zeros(gray_tempm.size(), CV_8UC1);
         Adaptive::thresholdIntegral(gray_tempm, bwt);
+        cv::dilate(bwt, bwt, cv::Mat(), cv::Point(-1, -1), 1);
 
         cv::Mat diff;
         //cv::absdiff(right, temp_modified, diff);
@@ -267,6 +269,11 @@ int main(int argc, char** argv)
 
         cv::imshow("dif", bin);
         cv::imwrite("./diffjust/" + meter_type_s + "/diff/" + std::to_string(it) + (type ? "pointer" : "normal") + ".png", bin);
+
+        //remove noise
+        int sigma = 3;
+        int k_size = (sigma * 5) | 1;
+        cv::GaussianBlur(bin, bin, cv::Size(k_size, k_size), sigma, sigma);
 
         int iter = 0;
         cv::erode(bin, bin, cv::Mat(), cv::Point(-1, -1), iter);
