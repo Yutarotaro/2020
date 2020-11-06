@@ -120,7 +120,8 @@ void readMeter(cv::Mat src)
     //    subImg = cv::imread("../pictures/prac.png", 1);
 
 
-    auto [p, R] = Difference::circleDetect(subImg);
+    //auto [p, R] = Difference::circleDetect(subImg);
+   std::pair<cv::Point, int> a = Difference::circleDetect(subImg);
 
 
     cv::Mat target;

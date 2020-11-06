@@ -1,12 +1,10 @@
 #include "Eigen/Dense"
 #include "common/init.hpp"
 #include "pos/calib.hpp"
-#include "pos/fromtwo.hpp"
 #include "pos/module.hpp"
 #include "read/difference.hpp"
 #include "read/readability.hpp"
 #include "read/template.hpp"
-#include "sub/fit.hpp"
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
@@ -67,6 +65,8 @@ int main(int argc, char** argv)
     cv::Mat Base_calib = cv::imread("../pictures/" + picdir + "/pic-1.JPG", 1);
     cv::Mat Base_clock_tmp = cv::imread("../pictures/" + picdir + "/pic-3.JPG", 1);
 
+
+
     //文字盤以外にマスクをかける処理
     cv::Mat mask = cv::Mat::zeros(Base_clock_tmp.rows, Base_clock_tmp.cols, CV_8UC1);
     cv::circle(mask, cv::Point(2214, 1294), 310, cv::Scalar(255), -1, CV_AA);
@@ -78,6 +78,7 @@ int main(int argc, char** argv)
     temp = Base_clock(roi_temp);
     ///////////////////////////////
 
+    cv::waitKey();
 
     //基準画像の特徴点を事前に検出しておく
     cv::Ptr<cv::Feature2D> feature;
@@ -125,6 +126,9 @@ int main(int argc, char** argv)
         std::string path = "../pictures/meter_experiment/pic" + std::to_string(it) + ".JPG";
 
         cv::Mat Now_clock_o = cv::imread(path, 1);  //for matching
+
+	cv::imshow("io", Now_clock_o);
+	cv::waitKey();
 
 
         cv::Mat Now_clock;

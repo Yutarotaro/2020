@@ -1,7 +1,6 @@
 #include "../common/init.hpp"
 #include "../pos/module.hpp"
 #include "readability.hpp"
-#include <leptonica/allheaders.h>
 #include <opencv2/dnn.hpp>
 #include <opencv2/dnn/layer.details.hpp>
 #include <opencv2/opencv.hpp>
@@ -270,7 +269,8 @@ double read(cv::Mat src)
 
 
     //細線化
-    cv::ximgproc::thinning(bin, bin, cv::ximgproc::WMF_EXP);
+    //cv::ximgproc::thinning(bin, bin, cv::ximgproc::WMF_EXP);
+//    cv::ximgproc::thinning(bin, bin, cv::ximgproc::THINNING_ZHANGSUEN);
 
     cv::imshow("thinning", bin);
     cv::imwrite("./thinning/" + std::to_string(it) + (type ? "pointer" : "normal") + ".png", bin);

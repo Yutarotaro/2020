@@ -5,8 +5,8 @@
 #include <opencv2/opencv.hpp>
 #include <string>
 
-#define filepath1 "/Users/yutaro/research/2020/src"
-#define filepath2 "/Users/yutaro/research/2020/src/pictures"
+#define filepath1 "/home/yutaro/research/src"
+#define filepath2 "/home/yutaro/research/src/pictures"
 
 namespace Init
 {

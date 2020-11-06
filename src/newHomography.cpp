@@ -1,12 +1,10 @@
 #include "Eigen/Dense"
 #include "common/init.hpp"
 #include "pos/calib.hpp"
-#include "pos/fromtwo.hpp"
 #include "pos/module.hpp"
 #include "read/difference.hpp"
 #include "read/readability.hpp"
 #include "read/template.hpp"
-#include "sub/fit.hpp"
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
