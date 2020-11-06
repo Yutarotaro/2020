@@ -73,6 +73,12 @@ int main(int argc, char** argv)
     int failure = 0;  //i = 54をcountしている
     int ct = 0;
 
+    ///////
+    double z = 449.35;
+    pos.at<double>(0, 2) = z;
+    t = R * pos;
+    ///////
+
     for (int i = st; i <= to; i++) {
         std::cout << std::endl
                   << i + 1 << "回目" << std::endl;

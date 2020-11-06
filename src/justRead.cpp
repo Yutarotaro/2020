@@ -54,7 +54,7 @@ int record;
 int message(int argc, char** argv);
 
 int opt_list[] = {5, 40, 45, 63, 89, 97, 104, 106};
-
+int lis[] = {10, 11, 12, 17};
 /*class Params
 {
 public:
@@ -72,7 +72,7 @@ public:
 
 //0:T, 1:V
 Init::Params params[] = {{70, 126, "meter_experiment", cv::Point(1899, 979), 620, 25.2, 1.81970, 80. / CV_PI},
-    {100, 92, "meter_experiment_V", cv::Point(1808, 1033), 680, -0.0101, CV_PI / 2. * 33 / 40., 33. * 0.002 / CV_PI}};
+    {100, 92, "meter_experiment_V", cv::Point(1808, 1033), 680, -0.0101, 1.88299 /*CV_PI / 2. * 33 / 40.*/, 33. * 0.002 / CV_PI}};
 
 std::map<std::string, int> mp;
 
@@ -125,8 +125,12 @@ int main(int argc, char** argv)
     int en = (argc > 5 ? std::stoi(argv[5]) : params[meter_type].total);
 
 
+    //itt 回数
+    //it  画像のindex
     for (int itt = st; itt < en; ++itt) {
+        //    for (int itt = 0; itt < 3; ++itt) {
         it = itt;
+        //    it = lis[itt];
 
         ////for more accurate Homography
         featurePoint2.clear();          //特徴点ベクトルの初期化
@@ -140,10 +144,39 @@ int main(int argc, char** argv)
 
         cv::Mat Now_clock_o = cv::imread(path, 1);  //for matching
 
-
         cv::Mat Now_clock;
-        Now_clock_o.copyTo(Now_clock);
 
+
+        //////////for masking
+        if (false) {
+            /*            cv::FileStorage fs(ostr.str(), cv::FileStorage::READ);
+            if (!fs.isOpened()) {
+                std::cerr << "File can not be opened." << std::endl;
+            }
+            cv::Mat pa = cv::zeros(3, 1, int);
+
+            fs["17"] >> pa;
+            */
+
+
+            cv::Point topleft[] = {cv::Point(1911, 1325), cv::Point(1940, 1197), cv::Point(2101, 1156), cv::Point(2234, 1257)};
+            cv::Size bottomright[] = {cv::Point(2276, 1710), cv::Size(2220, 1597), cv::Size(2521, 1556), cv::Size(2394, 1857)};
+
+            cv::Mat mask_pa = cv::Mat::zeros(Now_clock_o.rows, Now_clock_o.cols, CV_8UC1);
+            cv::rectangle(mask_pa, topleft[itt], bottomright[itt], cv::Scalar(255), -1, CV_AA);
+            Now_clock_o.copyTo(Now_clock, mask_pa);
+
+
+            cv::imshow("masked", Now_clock);
+            cv::waitKey();
+
+        } else {
+            Now_clock_o.copyTo(Now_clock);
+        }
+
+        cv::Mat hsv;
+        cv::cvtColor(Now_clock, hsv, cv::COLOR_BGR2HSV);
+        cv::imshow("hsv", hsv);
 
         //Homography: Template to Test
         H = Module::getHomography(Base_clock, Now_clock);
@@ -225,6 +258,7 @@ int main(int argc, char** argv)
 
 
         cv::imshow("bwr", bwr);
+        //        cv::imwrite("./diffjust/V/bwr.png", bwr);
         cv::imshow("bwr_origin", gray_right);
         cv::imshow("bwt", bwt);
 
@@ -232,7 +266,7 @@ int main(int argc, char** argv)
         //文字盤より外を黒く
 
         //int d = 4;
-        int d = 8;
+        int d = 80;
         cv::Mat mask_for_dif = cv::Mat::zeros(diff.rows, diff.cols, CV_8UC1);
         cv::circle(mask_for_dif, cv::Point(params[meter_type].l / 2, params[meter_type].l / 2), params[meter_type].l / 2 - d, cv::Scalar(255), -1, 0);
 
@@ -245,10 +279,41 @@ int main(int argc, char** argv)
         cv::erode(dif, dif, cv::Mat(), cv::Point(-1, -1), ite);
         cv::dilate(dif, dif, cv::Mat(), cv::Point(-1, -1), ite);
 
-        cv::ximgproc::thinning(dif, dif, cv::ximgproc::WMF_EXP);
-        cv::imshow("thinning", dif);
+        int cnt = cv::countNonZero(dif);
 
-        cv::waitKey(2);
+
+        //        cv::ximgproc::thinning(dif, dif, cv::ximgproc::WMF_EXP);
+        //       cv::imshow("thinning", dif);
+
+
+        cv::Rect roi_onlyPointer(cv::Point(params[meter_type].l / 4, params[meter_type].l / 4), cv::Size(params[meter_type].l / 2, params[meter_type].l / 2));
+        cv::Mat pointerImage = dif(roi_onlyPointer);  // 切り出し画像
+
+
+        cv::ximgproc::thinning(pointerImage, pointerImage, cv::ximgproc::WMF_EXP);
+        cv::imshow("thinning", pointerImage);
+
+        std::pair<double, cv::Mat> aa;
+        aa.first = 0.;
+        aa = Readability::pointerDetection(pointerImage);
+
+
+        std::cout << it << "-th read value = " << aa.first << std::endl
+                  << "white: " << cnt << std::endl
+                  << "/////////////////////////////" << std::endl;
+
+        cv::imwrite("./diffjust/" + meter_type_s + "/reading/" + std::to_string(it) + (type ? "pointer" : "normal") + ".png", aa.second);
+
+        if (record) {
+            ofs << it << ',' << aa.first << ',' << cnt << std::endl;
+        }
+
+        if (argc == 7) {
+            cv::waitKey(std::stoi(argv[6]));
+        } else {
+            cv::waitKey(1);
+        }
+
         continue;
 
         /////////////移行前のコード
@@ -284,16 +349,16 @@ int main(int argc, char** argv)
         }
         cv::ximgproc::thinning(bin, bin, cv::ximgproc::WMF_EXP);
 
-        cv::Rect roi_onlyPointer(cv::Point(220, 220), cv::Size(280, 280));
-        cv::Mat pointerImage = bin(roi_onlyPointer);  // 切り出し画像
+        cv::Rect roi_Pointer(cv::Point(220, 220), cv::Size(280, 280));
+        cv::Mat pointerImg = bin(roi_Pointer);  // 切り出し画像
 
-        cv::imshow("pointerImage", pointerImage);
+        cv::imshow("pointerImage", pointerImg);
 
         //TODO:Hough Transform
         //PCAにしたい
         std::pair<double, cv::Mat> a;
         a.first = 0.;
-        a = Readability::pointerDetection(pointerImage);
+        a = Readability::pointerDetection(pointerImg);
 
         std::cout << it << "-th read value = " << a.first << std::endl
                   << "/////////////////////////////" << std::endl;
@@ -303,8 +368,11 @@ int main(int argc, char** argv)
             ofs << it << ',' << a.first << std::endl;
         }
 
-        cv::waitKey(2);
-
+        if (argc == 6) {
+            cv::waitKey(std::stoi(argv[6]));
+        } else {
+            cv::waitKey(2);
+        }
         continue;
     }
 
@@ -316,7 +384,7 @@ int message(int argc, char** argv)
     mp["T"] = 0;
     mp["V"] = 1;
 
-    if (argc < 4 || argc > 6) {
+    if (argc < 4 || argc > 7) {
         return -1;
     }
 

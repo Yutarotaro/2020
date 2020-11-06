@@ -220,7 +220,7 @@ std::pair<double, cv::Mat> pointerDetection(cv::Mat src)
 
         float rho = lines[index][0], theta = lines[index][1];
         std::cout << index << "-th " << lines[index][2] << " votes" << std::endl
-                  << lines[index][1] << " [rad]" << lines[index][1] * 180. / CV_PI << " [deg]" << std::endl;
+                  << lines[index][1] << " [rad]" << std::endl;
         cv::Point pt1, pt2;
         double a = std::cos(theta), b = std::sin(theta);
         double x0 = a * rho, y0 = b * rho;
@@ -232,12 +232,13 @@ std::pair<double, cv::Mat> pointerDetection(cv::Mat src)
         value = lines[index][1];
     }
 
+
     //この時点でvalueはrad
     //degに変更
 
     value = params[meter_type].front_value + params[meter_type].k * (value - params[meter_type].front_rad);
 
-    cv::imwrite("./reading/no" + std::to_string(it) + (type ? "pointer" : "normal") + "_" + std::to_string(value) + ".png", ret);
+    //    cv::imwrite("./reading/no" + std::to_string(it) + (type ? "pointer" : "normal") + "_" + std::to_string(value) + ".png", ret);
 
 
     return {value, ret};

@@ -105,7 +105,9 @@ Mat getHomography(Mat Src1, Mat Src2)
     //imwrite("../output/match_inlier.jpg", drawMatch_inlier);
 
     imshow("DrawMatch_inlier", drawMatch_inlier);
-    imwrite("./diffjust/V/match/match_inlier_" + std::to_string(it) + ".png", drawMatch_inlier);
+    imwrite("./diffjust/V/match/match_inlier" + std::to_string(it) + ".png", drawMatch_inlier);
+    //for masking
+    //imwrite("./diffjust/V/match/match_inlier_mask" + std::to_string(it) + ".png", drawMatch_inlier);
 
 
     return H;
@@ -130,7 +132,7 @@ Mat getHomography(vector<KeyPoint> keypoints, Mat descriptors, Mat Src1, Mat Src
     match.knnMatch(descriptors, descriptors2, knnmatch_points, 2);
 
     //対応点を絞る
-    const double match_par = 0.75;  //候補点を残す場合のしきい値originally 0.6
+    const double match_par = 0.70;  //候補点を残す場合のしきい値originally 0.6
     vector<cv::DMatch> goodMatch;
     //KeyPoint -> Point2d
     vector<cv::Point2f> match_point;
