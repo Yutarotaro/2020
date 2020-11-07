@@ -68,6 +68,7 @@ public:
     double k;            //1[deg]に対する変化率
 };
 */
+
 //一番マシなメータまでの距離
 double z = 449.35;
 
@@ -84,6 +85,7 @@ int ite = 3;
 int main(int argc, char** argv)
 {
     //入力が正しいか確認
+
     if (message(argc, argv)) {
         std::cout << "unexpected inputs" << std::endl;
         return -1;
@@ -97,6 +99,9 @@ int main(int argc, char** argv)
     cv::Mat Base_clock = cv::imread("../pictures/meter_template/Base_clock" + meter_type_s + ".png", 1);
     temp = cv::imread("../pictures/meter_template/temp" + meter_type_s + ".png", 1);
 
+    //   cv::Mat hsv;
+    //  cv::cvtColor(temp, hsv, cv::COLOR_BGR2HSV);
+    //    cv::imshow("hsv", hsv);
 
     ///////////////////////////////
 
@@ -114,10 +119,6 @@ int main(int argc, char** argv)
         ofs.open("./diffjust/" + meter_type_s + "/reading/reading" + t + ".csv");
     }
 
-    ///////
-    pos.at<double>(0, 2) = z;
-    t = R * pos;
-    ///////
 
     int st = (argc > 4 ? std::stoi(argv[4]) : 0);
     int en = (argc > 5 ? std::stoi(argv[5]) : params[meter_type].total);
@@ -125,10 +126,10 @@ int main(int argc, char** argv)
 
     //itt 回数
     //it  画像のindex
-    for (int itt = st; itt < en; ++itt) {
-        //    for (int itt = 0; itt < 3; ++itt) {
-        it = itt;
-        //    it = lis[itt];
+    // for (int itt = st; itt < en; ++itt) {
+    for (int itt = 0; itt < 3; ++itt) {
+        //   it = itt;
+        it = lis[itt];
 
         ////for more accurate Homography
         featurePoint2.clear();          //特徴点ベクトルの初期化
@@ -146,7 +147,7 @@ int main(int argc, char** argv)
 
 
         //////////for masking
-        if (false) {
+        if (true) {
             /*            cv::FileStorage fs(ostr.str(), cv::FileStorage::READ);
             if (!fs.isOpened()) {
                 std::cerr << "File can not be opened." << std::endl;
@@ -158,11 +159,15 @@ int main(int argc, char** argv)
 
 
             cv::Point topleft[] = {cv::Point(1911, 1325), cv::Point(1940, 1197), cv::Point(2101, 1156), cv::Point(2234, 1257)};
-            cv::Size bottomright[] = {cv::Point(2276, 1710), cv::Size(2220, 1597), cv::Size(2521, 1556), cv::Size(2394, 1857)};
+            cv::Point bottomright[] = {cv::Point(2276, 1710), cv::Size(2220, 1597), cv::Size(2521, 1556), cv::Size(2394, 1857)};
 
             cv::Mat mask_pa = cv::Mat::zeros(Now_clock_o.rows, Now_clock_o.cols, CV_8UC1);
             cv::rectangle(mask_pa, topleft[itt], bottomright[itt], cv::Scalar(255), -1, CV_AA);
             Now_clock_o.copyTo(Now_clock, mask_pa);
+
+            cv::Rect roi(cv::Point(topleft[itt]), cv::Size(bottomright[itt] - topleft[itt]));
+            cv::Mat img = Now_clock_o(roi);
+            cv::imwrite("./roi" + std::to_string(itt) + ".png", img);
 
 
             cv::imshow("masked", Now_clock);
@@ -382,21 +387,21 @@ int message(int argc, char** argv)
     mp["T"] = 0;
     mp["V"] = 1;
 
-    if (argc < 4 || argc > 7) {
-        return -1;
-    }
 
-    meter_type_s = argv[1];
+    //meter_type_s = argv[1];
+    meter_type_s = "V";
     std::cout << "type of analog meter:" << (meter_type_s == "T" ? "ThermoMeter" : "Vacuum") << std::endl;
     meter_type = mp[meter_type_s];
 
 
-    std::string tmp = argv[2];
+    //std::string tmp = argv[2];
+    std::string tmp = "0";
     type = std::stoi(tmp);
     std::cout << "type of homography: " << type << std::endl;
 
 
-    tmp = argv[3];
+    //tmp = argv[3];
+    tmp = "0";
     record = std::stoi(tmp);
     std::cout << "record? :" << (record ? "Yes" : "No") << std::endl;
 

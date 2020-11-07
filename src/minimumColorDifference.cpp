@@ -68,6 +68,7 @@ public:
     double k;            //1[deg]に対する変化率
 };
 */
+
 //一番マシなメータまでの距離
 double z = 449.35;
 
@@ -84,6 +85,7 @@ int ite = 3;
 int main(int argc, char** argv)
 {
     //入力が正しいか確認
+
     if (message(argc, argv)) {
         std::cout << "unexpected inputs" << std::endl;
         return -1;
@@ -97,6 +99,9 @@ int main(int argc, char** argv)
     cv::Mat Base_clock = cv::imread("../pictures/meter_template/Base_clock" + meter_type_s + ".png", 1);
     temp = cv::imread("../pictures/meter_template/temp" + meter_type_s + ".png", 1);
 
+    //   cv::Mat hsv;
+    //  cv::cvtColor(temp, hsv, cv::COLOR_BGR2HSV);
+    //    cv::imshow("hsv", hsv);
 
     ///////////////////////////////
 
@@ -104,31 +109,19 @@ int main(int argc, char** argv)
     //基準画像の特徴点を事前に検出しておく
     cv::Ptr<cv::Feature2D> feature;
     feature = cv::AKAZE::create();
-    feature->detectAndCompute(Base_clock, cv::Mat(), keypoints1, descriptors1);
+    //feature->detectAndCompute(Base_clock, cv::Mat(), keypoints1, descriptors1);
+    feature->detectAndCompute(temp, cv::Mat(), keypoints1, descriptors1);
 
 
     //読み取り結果を記録
-    std::ofstream ofs;
-    if (record) {
-        std::string t = (type ? "pointer" : "normal");
-        ofs.open("./diffjust/" + meter_type_s + "/reading/reading" + t + ".csv");
-    }
-
-    ///////
-    pos.at<double>(0, 2) = z;
-    t = R * pos;
-    ///////
-
-    int st = (argc > 4 ? std::stoi(argv[4]) : 0);
-    int en = (argc > 5 ? std::stoi(argv[5]) : params[meter_type].total);
 
 
     //itt 回数
     //it  画像のindex
-    for (int itt = st; itt < en; ++itt) {
-        //    for (int itt = 0; itt < 3; ++itt) {
-        it = itt;
-        //    it = lis[itt];
+    // for (int itt = st; itt < en; ++itt) {
+    for (int itt = 0; itt < 3; ++itt) {
+        //   it = itt;
+        it = lis[itt];
 
         ////for more accurate Homography
         featurePoint2.clear();          //特徴点ベクトルの初期化
@@ -144,38 +137,39 @@ int main(int argc, char** argv)
 
         cv::Mat Now_clock;
 
-
-        //////////for masking
-        if (false) {
-            /*            cv::FileStorage fs(ostr.str(), cv::FileStorage::READ);
-            if (!fs.isOpened()) {
-                std::cerr << "File can not be opened." << std::endl;
-            }
-            cv::Mat pa = cv::zeros(3, 1, int);
-
-            fs["17"] >> pa;
-            */
+        Now_clock_o.copyTo(Now_clock);
 
 
-            cv::Point topleft[] = {cv::Point(1911, 1325), cv::Point(1940, 1197), cv::Point(2101, 1156), cv::Point(2234, 1257)};
-            cv::Size bottomright[] = {cv::Point(2276, 1710), cv::Size(2220, 1597), cv::Size(2521, 1556), cv::Size(2394, 1857)};
+        cv::Mat init = cv::imread("./roi" + std::to_string(itt) + ".png", 1);
 
-            cv::Mat mask_pa = cv::Mat::zeros(Now_clock_o.rows, Now_clock_o.cols, CV_8UC1);
-            cv::rectangle(mask_pa, topleft[itt], bottomright[itt], cv::Scalar(255), -1, CV_AA);
-            Now_clock_o.copyTo(Now_clock, mask_pa);
+        std::ostringstream ostr;
+        ostr << "./minimum.xml";
 
+        //[ref] https://qiita.com/wakaba130/items/3ce8d8668d0a698c7e1b
 
-            cv::imshow("masked", Now_clock);
-            cv::waitKey();
-
-        } else {
-            Now_clock_o.copyTo(Now_clock);
+        cv::FileStorage fs(ostr.str(), cv::FileStorage::READ);
+        if (!fs.isOpened()) {
+            std::cerr << "File can not be opened." << std::endl;
         }
 
-        cv::Mat hsv;
-        cv::cvtColor(Now_clock, hsv, cv::COLOR_BGR2HSV);
-        cv::imshow("hsv", hsv);
+        //    fs["intrinsic"] >> cameraMatrix;
+        fs["H"] >> H;
 
+
+        //H = (cv::Mat_<double>(3, 3) << 1, 0.2, 0, 0, 1, 0, 0, 0, 1);
+
+
+        cv::resize(init, init, cv::Size(), (double)temp.cols / init.cols, (double)temp.rows / init.rows);
+        H = Module::getHomography(temp, init);
+
+
+        cv::Mat warped = cv::Mat::zeros(init.rows, init.cols, CV_8UC3);
+        cv::warpPerspective(init, warped, H.inv(), warped.size());
+        cv::imshow("warped", warped);
+        cv::waitKey();
+
+
+#if 0
         //Homography: Template to Test
         H = Module::getHomography(Base_clock, Now_clock);
         /////////////////////////////////////////////////////
@@ -372,6 +366,7 @@ int main(int argc, char** argv)
             cv::waitKey(2);
         }
         continue;
+#endif
     }
 
     return 0;
@@ -382,21 +377,21 @@ int message(int argc, char** argv)
     mp["T"] = 0;
     mp["V"] = 1;
 
-    if (argc < 4 || argc > 7) {
-        return -1;
-    }
 
-    meter_type_s = argv[1];
+    //meter_type_s = argv[1];
+    meter_type_s = "V";
     std::cout << "type of analog meter:" << (meter_type_s == "T" ? "ThermoMeter" : "Vacuum") << std::endl;
     meter_type = mp[meter_type_s];
 
 
-    std::string tmp = argv[2];
+    //std::string tmp = argv[2];
+    std::string tmp = "0";
     type = std::stoi(tmp);
     std::cout << "type of homography: " << type << std::endl;
 
 
-    tmp = argv[3];
+    //tmp = argv[3];
+    tmp = "0";
     record = std::stoi(tmp);
     std::cout << "record? :" << (record ? "Yes" : "No") << std::endl;
 

@@ -16,6 +16,7 @@ extern cv::Mat R;
 extern cv::Mat pos;  //World
 extern cv::Mat t;    //Camera1
 
+
 extern std::vector<cv::KeyPoint> keypoints1;
 extern cv::Mat descriptors1;
 

@@ -11,6 +11,7 @@ extern cv::Mat distCoeffs;
 extern cv::Mat R;
 extern cv::Mat t;
 extern cv::Mat pos;
+extern double z;
 
 namespace Init
 {
@@ -49,6 +50,10 @@ int parseInit()
     //   fs2["R"] >> R;
 
     //posをCamera1 Coordinateに変換
+    //t = R * pos;
+
+    //zのみマシな値に差し替える
+    pos.at<double>(0, 2) = z;
     t = R * pos;
 
     std::cout << "init ok" << std::endl;
