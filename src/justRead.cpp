@@ -139,45 +139,17 @@ int main(int argc, char** argv)
                   << "/////////////////////////////" << std::endl
                   << "picture " << it << std::endl;
         std::string path = "../pictures/" + params[meter_type].picdir + "/pic" + std::to_string(it) + ".JPG";
+        //std::string path = "../pictures/" + params[meter_type].picdir + "/mask/pic" + std::to_string(it) + ".png";
 
         cv::Mat Now_clock_o = cv::imread(path, 1);  //for matching
 
         cv::Mat Now_clock;
 
-
-        //////////for masking
-        if (false) {
-            /*            cv::FileStorage fs(ostr.str(), cv::FileStorage::READ);
-            if (!fs.isOpened()) {
-                std::cerr << "File can not be opened." << std::endl;
-            }
-            cv::Mat pa = cv::zeros(3, 1, int);
-
-            fs["17"] >> pa;
-            */
-
-
-            cv::Point topleft[] = {cv::Point(1911, 1325), cv::Point(1940, 1197), cv::Point(2101, 1156), cv::Point(2234, 1257)};
-            cv::Size bottomright[] = {cv::Point(2276, 1710), cv::Size(2220, 1597), cv::Size(2521, 1556), cv::Size(2394, 1857)};
-
-            cv::Mat mask_pa = cv::Mat::zeros(Now_clock_o.rows, Now_clock_o.cols, CV_8UC1);
-            cv::rectangle(mask_pa, topleft[itt], bottomright[itt], cv::Scalar(255), -1, CV_AA);
-            Now_clock_o.copyTo(Now_clock, mask_pa);
-
-
-            cv::imshow("masked", Now_clock);
-            cv::waitKey();
-
-        } else {
-            Now_clock_o.copyTo(Now_clock);
-        }
-
-        cv::Mat hsv;
-        cv::cvtColor(Now_clock, hsv, cv::COLOR_BGR2HSV);
-        cv::imshow("hsv", hsv);
+        Now_clock_o.copyTo(Now_clock);
 
         //Homography: Template to Test
         H = Module::getHomography(Base_clock, Now_clock);
+        cv::waitKey();
         /////////////////////////////////////////////////////
 
 
@@ -233,6 +205,7 @@ int main(int argc, char** argv)
             continue;
         }
 
+        ////////////////////////////////////////AdaptiveIntegralThresholding
 
         cv::Mat gray_right;
         cv::cvtColor(right_modified, gray_right, cv::COLOR_BGR2GRAY);
@@ -240,12 +213,13 @@ int main(int argc, char** argv)
         Adaptive::thresholdIntegral(gray_right, bwr);
         cv::erode(bwr, bwr, cv::Mat(), cv::Point(-1, -1), 1);
 
-
         cv::Mat gray_tempm;
         cv::cvtColor(temp, gray_tempm, cv::COLOR_BGR2GRAY);
         cv::Mat bwt = cv::Mat::zeros(gray_tempm.size(), CV_8UC1);
         Adaptive::thresholdIntegral(gray_tempm, bwt);
         cv::dilate(bwt, bwt, cv::Mat(), cv::Point(-1, -1), 1);
+        ////////////////////////////////////////
+
 
         cv::Mat diff;
         //cv::absdiff(right, temp_modified, diff);

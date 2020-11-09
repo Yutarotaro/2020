@@ -147,6 +147,51 @@ int main(int argc, char** argv)
         //object detection で 切り取られたメータ領域の画像
         cv::Mat init = cv::imread("../pictures/meter_experiment_V/roi/pic" + std::string(argv[1]) + ".png", 1);
 
+        try {
+            cv::imshow("init", init);
+        } catch (cv::Exception& e) {
+            continue;
+        }
+
+        //ここから楕円検出
+
+        cv::Mat gray;
+        cv::cvtColor(init, gray, CV_BGR2GRAY);
+        std::vector<std::vector<cv::Point>> contours;
+        std::vector<cv::Vec4i> hierarchy;
+
+        cv::findContours(gray,    // 入力画像，8ビット，シングルチャンネル．0以外のピクセルは 1 、0のピクセルは0として扱う。処理結果として image を書き換えることに注意する.
+            contours,             // 輪郭を点ベクトルとして取得する
+            hierarchy,            // hiararchy ? オプション．画像のトポロジーに関する情報を含む出力ベクトル．
+            CV_RETR_EXTERNAL,     // 輪郭抽出モード
+            CV_CHAIN_APPROX_NONE  // 輪郭の近似手法
+        );
+
+        std::cout << "number of contours" << contours.size() << std::endl;
+        for (int i = 0; i < contours.size(); i++) {
+            std::cout << contours[i].size() << std::endl;
+        }
+
+        cv::Mat points;
+
+        int tmp = 3;
+        int idx = 0;
+
+
+        for (int i = 0; i >= 0; i = hierarchy[i][0]) {
+            if (contours[i].size() > 5 /*00*/) {
+                // 2 次元の点集合にフィッティングする楕円を取得
+                cv::RotatedRect rc = cv::fitEllipseDirect(contours[i]);
+                // 楕円を描画
+                cv::ellipse(init, rc, cv::Scalar(0, 128, 0), 10 / 2, CV_AA);
+            }
+        }
+
+        cv::imshow("ellipse", init);
+        cv::waitKey(2000);
+
+#if 0
+
         std::ostringstream ostr;
         ostr << "./minimum.xml";
 
@@ -181,7 +226,6 @@ int main(int argc, char** argv)
         //optimize Homography
 
 
-#if 0
         //Homography: Template to Test
         H = Module::getHomography(Base_clock, Now_clock);
         /////////////////////////////////////////////////////

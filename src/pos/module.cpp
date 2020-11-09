@@ -106,7 +106,7 @@ Mat getHomography(Mat Src1, Mat Src2)
     //imwrite("../output/match_inlier.jpg", drawMatch_inlier);
 
     imshow("DrawMatch_inlier", drawMatch_inlier);
-    imwrite("./diffjust/V/match/match_inlier" + std::to_string(it) + ".png", drawMatch_inlier);
+    imwrite("./diffjust/V/match/match_inlier_" + std::to_string(it) + ".png", drawMatch_inlier);
     //for masking
     //imwrite("./diffjust/V/match/match_inlier_mask" + std::to_string(it) + ".png", drawMatch_inlier);
 

@@ -167,7 +167,7 @@ int main(int argc, char** argv)
 
             cv::Rect roi(cv::Point(topleft[itt]), cv::Size(bottomright[itt] - topleft[itt]));
             cv::Mat img = Now_clock_o(roi);
-            cv::imwrite("./roi" + std::to_string(itt) + ".png", img);
+            cv::imwrite("../pictures/meter_experiment_V/roi" + std::to_string(it) + ".png", img);
 
 
             cv::imshow("masked", Now_clock);
@@ -177,9 +177,8 @@ int main(int argc, char** argv)
             Now_clock_o.copyTo(Now_clock);
         }
 
-        cv::Mat hsv;
-        cv::cvtColor(Now_clock, hsv, cv::COLOR_BGR2HSV);
-        cv::imshow("hsv", hsv);
+        continue;
+
 
         //Homography: Template to Test
         H = Module::getHomography(Base_clock, Now_clock);
