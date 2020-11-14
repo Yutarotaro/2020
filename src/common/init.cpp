@@ -1,4 +1,5 @@
 #include "init.hpp"
+#include "params/pose_params.hpp"
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -6,11 +7,7 @@
 #include <sstream>
 #include <string>
 
-extern cv::Mat A;
-extern cv::Mat distCoeffs;
-extern cv::Mat R;
-extern cv::Mat t;
-extern cv::Mat pos;
+extern Camera_pose camera;
 
 namespace Init
 {
@@ -31,10 +28,10 @@ int parseInit()
     }
 
     //    fs["intrinsic"] >> cameraMatrix;
-    fs["intrinsic"] >> A;
-    fs["distortion"] >> distCoeffs;
-    fs["R"] >> R;
-    fs["t"] >> pos;
+    fs["intrinsic"] >> camera.A;
+    fs["distortion"] >> camera.distCoeffs;
+    fs["R"] >> camera.R;
+    fs["t"] >> camera.pos;
 
     //TODO: .xmlからの配列の読み取り 6/1
 
@@ -55,8 +52,8 @@ int parseInit()
     //t = R * pos;
 
     //zのみマシな値に差し替える
-    pos.at<double>(0, 2) = z;
-    t = R * pos;
+    camera.pos.at<double>(0, 2) = z;
+    camera.t = camera.R * camera.pos;
 
     std::cout << "init ok" << std::endl;
     return 0;

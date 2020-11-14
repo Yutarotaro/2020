@@ -1,17 +1,14 @@
 #include "module.hpp"
 #include "opencv2/calib3d.hpp"
+#include "params/pose_params.hpp"
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <utility>
 
 using namespace std;
 
-extern cv::Mat A;
-extern cv::Mat distCoeffs;
-extern cv::Mat R;
-extern cv::Mat pos;  //World
-extern cv::Mat t;    //Camera1
 
+extern Camera_pose camera;
 
 #define PAT_ROW (7)  /* パターンの行数 */
 #define PAT_COL (10) /* パターンの列数 */
@@ -65,46 +62,46 @@ void calibration(cv::Mat& img, Module::pose& p)
     cv::find4QuadCornerSubpix(src_gray, corners, cv::Size(3, 3));
     cv::drawChessboardCorners(img, pattern_size, corners, found);
 
-    vector<cv::Point2f> camera;
+    vector<cv::Point2f> camera_cor;
     vector<cv::Point3f> world;
 
 #if 0
-    camera.push_back(corners[0]);
+    camera_cor.push_back(corners[0]);
     world.push_back(cv::Point3f(0., 0., 0.));
 
-    camera.push_back(corners[PAT_COL - 1]);
+    camera_cor.push_back(corners[PAT_COL - 1]);
     world.push_back(cv::Point3f((PAT_COL - 1) * CHESS_SIZE + PAT_COL, 0., 0.));
 
-    camera.push_back(corners[(PAT_ROW - 1) * PAT_COL]);
+    camera_cor.push_back(corners[(PAT_ROW - 1) * PAT_COL]);
     world.push_back(cv::Point3f(0., 0., -(PAT_ROW - 1) * CHESS_SIZE - PAT_ROW));
 
-    camera.push_back(corners[PAT_ROW * PAT_COL - 1]);
+    camera_cor.push_back(corners[PAT_ROW * PAT_COL - 1]);
     world.push_back(cv::Point3f((PAT_COL - 1) * CHESS_SIZE + PAT_COL, 0., -(PAT_ROW - 1) * CHESS_SIZE - PAT_ROW));
 #else
 
-    camera.push_back(corners[0]);
+    camera_cor.push_back(corners[0]);
     world.push_back(cv::Point3f(0., 0., 0.));
 
-    camera.push_back(corners[1]);
+    camera_cor.push_back(corners[1]);
     world.push_back(cv::Point3f(0., CHESS_SIZE, 0.));
 
-    camera.push_back(corners[2]);
+    camera_cor.push_back(corners[2]);
     world.push_back(cv::Point3f(0., 2. * CHESS_SIZE, 0.));
 
-    camera.push_back(corners[PAT_COL - 1]);
+    camera_cor.push_back(corners[PAT_COL - 1]);
     world.push_back(cv::Point3f(0., (PAT_COL - 1) * CHESS_SIZE, 0.));
 
-    camera.push_back(corners[(PAT_ROW - 1) * PAT_COL]);
+    camera_cor.push_back(corners[(PAT_ROW - 1) * PAT_COL]);
     world.push_back(cv::Point3f((PAT_ROW - 1) * CHESS_SIZE, 0., 0.));
 
-    camera.push_back(corners[PAT_ROW * PAT_COL - 1]);
+    camera_cor.push_back(corners[PAT_ROW * PAT_COL - 1]);
     world.push_back(cv::Point3f((PAT_ROW - 1) * CHESS_SIZE, (PAT_COL - 1) * CHESS_SIZE, 0.));
 
 #endif
 
     cv::Mat rvec, tvec;
 
-    cv::solvePnP(world, camera, A, distCoeffs, rvec, tvec);
+    cv::solvePnP(world, camera_cor, camera.A, camera.distCoeffs, rvec, tvec);
 
 
     cv::Mat R_0, t_0;

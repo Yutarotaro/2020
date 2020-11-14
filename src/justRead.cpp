@@ -1,6 +1,7 @@
 #include "AdaptiveIntegralThresholding/thresh.hpp"
 #include "Eigen/Dense"
 #include "common/init.hpp"
+#include "params/pose_params.hpp"
 #include "pos/calib.hpp"
 #include "pos/fromtwo.hpp"
 #include "pos/module.hpp"
@@ -17,12 +18,7 @@
 #include <string>
 #include <vector>
 
-
-cv::Mat A;  //カメラ行列
-cv::Mat distCoeffs;
-cv::Mat R;    //基準姿勢
-cv::Mat pos;  //基準位置
-cv::Mat t;    //camにおけるpos
+Camera_pose camera;
 
 cv::Mat temp;
 
@@ -119,8 +115,9 @@ int main(int argc, char** argv)
     }
 
     ///////
-    pos.at<double>(0, 2) = z;
-    t = R * pos;
+    //common/init.cppでやってるはず
+    //pos.at<double>(0, 2) = z;
+    //t = R * pos;
     ///////
 
     int st = (argc > 4 ? std::stoi(argv[4]) : 0);

@@ -1,9 +1,7 @@
 #include "common/init.hpp"
-#include "opencv2/calib3d.hpp"
-#include "opencv2/core.hpp"
-#include "opencv2/features2d.hpp"
 #include "opencv2/highgui.hpp"
 #include "opencv2/xfeatures2d.hpp"
+#include "params/pose_params.hpp"
 #include "pos/calib.hpp"
 #include "pos/fromtwo.hpp"
 #include "pos/module.hpp"
@@ -16,14 +14,12 @@
 #include <string>
 #include <vector>
 
-cv::Mat A;  //カメラ行列
-cv::Mat distCoeffs;
-cv::Mat R;    //基準姿勢
-cv::Mat pos;  //基準位置
-cv::Mat t;    //camにおけるpos
+Camera_pose camera;
+
 
 cv::Mat temp;
-
+std::string meter_type_s;
+int it;
 std::vector<cv::KeyPoint> keypoints1;
 cv::Mat descriptors1;
 
@@ -73,11 +69,12 @@ int main(int argc, char** argv)
     int failure = 0;  //i = 54をcountしている
     int ct = 0;
 
-    ///////
+    //common/init.cppでやってるはず
+    /*
     double z = 449.35;
     pos.at<double>(0, 2) = z;
     t = R * pos;
-    ///////
+    */
 
     for (int i = st; i <= to; i++) {
         std::cout << std::endl
@@ -103,10 +100,11 @@ int main(int argc, char** argv)
             << std::endl;
 
 
-        auto H = Module::getHomography(Base_clock, Now_clock);
+        // cv::Mat H = Module::getHomography(Base_clock, Now_clock);
+        cv::Mat H;
 
 
-        Module::pose r = Module::decomposeHomography(H, A);
+        Module::pose r = Module::decomposeHomography(H, camera.A);
         std::cout << "Homography分解で得られた並進ベクトル(world)" << std::endl
                   << r.position << std::endl
                   << std::endl
