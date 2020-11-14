@@ -11,10 +11,12 @@ extern cv::Mat distCoeffs;
 extern cv::Mat R;
 extern cv::Mat t;
 extern cv::Mat pos;
-extern double z;
 
 namespace Init
 {
+//一番マシなメータまでの距離
+double z = 449.35;
+
 
 int parseInit()
 {

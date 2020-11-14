@@ -80,6 +80,7 @@ std::map<std::string, int> mp;
 
 int ite = 3;
 
+double image_size = 1920.;
 
 int main(int argc, char** argv)
 {
@@ -97,9 +98,12 @@ int main(int argc, char** argv)
     cv::Mat Base_clock = cv::imread("../pictures/meter_template/Base_clock" + meter_type_s + ".png", 1);
     temp = cv::imread("../pictures/meter_template/temp" + meter_type_s + ".png", 1);
 
+    image_size = Base_clock.cols;
+
 
     ///////////////////////////////
 
+    //    cv::resize(Base_clock, Base_clock, cv::Size(), image_size / Base_clock.cols, image_size / Base_clock.cols);
 
     //基準画像の特徴点を事前に検出しておく
     cv::Ptr<cv::Feature2D> feature;
@@ -141,11 +145,15 @@ int main(int argc, char** argv)
         std::string path = "../pictures/" + params[meter_type].picdir + "/pic" + std::to_string(it) + ".JPG";
         //std::string path = "../pictures/" + params[meter_type].picdir + "/mask/pic" + std::to_string(it) + ".png";
 
+
         cv::Mat Now_clock_o = cv::imread(path, 1);  //for matching
 
         cv::Mat Now_clock;
 
         Now_clock_o.copyTo(Now_clock);
+
+        cv::resize(Now_clock, Now_clock, cv::Size(), image_size / Now_clock.cols, image_size / Now_clock.cols);
+
 
         //Homography: Template to Test
         H = Module::getHomography(Base_clock, Now_clock);

@@ -70,17 +70,14 @@ public:
 };
 */
 
-//一番マシなメータまでの距離
-double z = 449.35;
-
 
 //0:T, 1:V
 Init::Params params[] = {{70, 126, "meter_experiment", cv::Point(1899, 979), 620, 25.2, 1.81970, 80. / CV_PI},
-    {100, 92, "meter_experiment_V", cv::Point(1808, 1033), 680, -0.0101, 1.88299 /*CV_PI / 2. * 33 / 40.*/, 33. * 0.002 / CV_PI}};
+    {100, 92, "meter_experiment_V", cv::Point(1808, 1033), 680, -0.0101, 1.88299 /*CV_PI / 2. * 33 / 40.*/, 33.5 * 0.002 / CV_PI}};
 
 std::map<std::string, int> mp;
 
-int ite = 3;
+int ite = 1;
 
 
 int main(int argc, char** argv)
@@ -96,15 +93,18 @@ int main(int argc, char** argv)
     //parameter
     Init::parseInit();
 
+    //読み取り結果を記録
+    std::string fileName = "./diffjust/" + meter_type_s + "/reading/reading.csv";
+    std::ofstream ofs(fileName, std::ios::app);
 
+
+    std::cout << meter_type_s << std::endl;
     cv::Mat Base_clock = cv::imread("../pictures/meter_template/Base_clock" + meter_type_s + ".png", 1);
     temp = cv::imread("../pictures/meter_template/temp" + meter_type_s + ".png", 1);
     //    temp = cv::imread("4.png", 1);
 
-    //   cv::Mat hsv;
-    //  cv::cvtColor(temp, hsv, cv::COLOR_BGR2HSV);
-    //    cv::imshow("hsv", hsv);
 
+    // cv::resize(temp, temp, cv::Size(), 0.5, 0.5);
     ///////////////////////////////
 
 
@@ -145,7 +145,9 @@ int main(int argc, char** argv)
 
         //cv::Mat init = cv::imread("../pictures/meter_experiment_V/roi/pic" + std::to_string(it) + ".png", 1);
         //object detection で 切り取られたメータ領域の画像
-        cv::Mat init = cv::imread("../pictures/meter_experiment_V/roi/pic" + std::string(argv[1]) + ".png", 1);
+        cv::Mat init = cv::imread("../pictures/" + params[meter_type].picdir + "/roi/pic" + std::string(argv[1]) + ".png", 1);
+        //        cv::resize(init, init, cv::Size(), 0.5, 0.5);
+
 
         std::ostringstream ostr;
         ostr << "./minimum.xml";
@@ -166,17 +168,141 @@ int main(int argc, char** argv)
         double rate = std::max((double)temp.cols / init.cols, (double)temp.rows / init.rows);
 
         cv::resize(init, init, cv::Size(), rate, rate);
-        H = Module::getHomography(temp, init);
 
 
-        cv::Mat warped = cv::Mat::zeros(init.rows, init.cols, CV_8UC3);
+        cv::Mat edge;
+        cv::Mat edge_temp;
+        init.copyTo(edge);
+        temp.copyTo(edge_temp);
+        //11/10ここで一回initを先鋭化しておく
+        int unsharp = 1;
+        if (unsharp) {
+            double k = 3.;
+            cv::Mat kernel = (cv::Mat_<float>(3, 3) << 0, -k, 0,
+                -k, 4 * k + 1., -k,
+                0, -k, 0);
+
+            /*
+            cv::filter2D(
+                temp,
+                edge_temp,
+                -1,
+                kernel,
+                cv::Point(-1, -1),
+                0,
+                cv::BORDER_DEFAULT);
+                */
+
+            cv::filter2D(
+                init,
+                edge,
+                -1,
+                kernel,
+                cv::Point(-1, -1),
+                0,
+                cv::BORDER_DEFAULT);
+        }
+
+        H = Module::getHomography(edge_temp, edge);
+        return 0;
+
+        //edgeでalignmentできたらいいよねって話
+        /*        cv::Mat gray_edge;
+        cv::cvtColor(edge, gray_edge, CV_BGR2GRAY);
+        cv::Mat bw_edge = cv::Mat::zeros(gray_edge.size(), CV_8UC1);
+        Adaptive::thresholdIntegral(gray_edge, bw_edge);
+        cv::erode(bw_edge, bw_edge, cv::Mat(), cv::Point(-1, -1), 1);
+
+        cv::Canny(bw_edge, bw_edge, 50, 255);
+        cv::imshow("bw_edge", bw_edge);
+        cv::waitKey();
+        */
+
+
+        //initをtempに重ねて可読性判定
+        cv::Mat warped = cv::Mat::zeros(temp.rows, temp.cols, CV_8UC3);
         cv::warpPerspective(init, warped, H.inv(), warped.size());
         //cv::warpPerspective(temp, warped, H, warped.size());  //tempをinit視点へ
-        cv::imshow("warp", warped);
-        cv::imwrite("./diffjust/V/transformed/pic" + std::to_string(it) + ".png", warped);
-        warped = warped - init;
+
+
+        cv::imwrite("./diffjust/" + meter_type_s + "/transformed/pic" + std::to_string(it) + (unsharp ? "unsharp" : "") + ".png", warped);
+
+        /*warped = warped - temp;
         cv::imshow("warped", warped);
-        cv::waitKey(2);
+        cv::imwrite("./diffjust/" + meter_type_s + "/diff_min/pic" + std::to_string(it) + (unsharp ? "unsharp" : "") + ".png", warped);
+*/
+        ////////////////////////////////////////AdaptiveIntegralThresholding
+
+        /*        if (meter_type_s == "V") {
+            temp = cv::imread("../pictures/meter_template/temp" + meter_type_s + "_nocenter.png", 1);
+            cv::imshow("no", temp);
+            cv::waitKey();
+        }
+        */
+        cv::Mat gray_temp;
+        cv::cvtColor(temp, gray_temp, cv::COLOR_BGR2GRAY);
+        cv::Mat bwt = cv::Mat::zeros(gray_temp.size(), CV_8UC1);
+        Adaptive::thresholdIntegral(gray_temp, bwt);
+        cv::dilate(bwt, bwt, cv::Mat(), cv::Point(-1, -1), 1);
+
+        cv::Mat gray_warped;
+        cv::cvtColor(warped, gray_warped, cv::COLOR_BGR2GRAY);
+        cv::Mat bwi = cv::Mat::zeros(gray_warped.size(), CV_8UC1);
+        Adaptive::thresholdIntegral(gray_warped, bwi);
+        cv::erode(bwi, bwi, cv::Mat(), cv::Point(-1, -1), 1);
+
+
+        ////////////////////////////////////////
+
+        cv::imshow("bwi", bwi);
+        cv::imshow("bwt", bwt);
+
+        cv::Mat diff = bwi - bwt;
+
+
+        int d = 60;
+        cv::Mat mask_for_dif = cv::Mat::zeros(diff.rows, diff.cols, CV_8UC1);
+        //cv::circle(mask_for_dif, cv::Point(params[meter_type].l / 2, params[meter_type].l / 2), params[meter_type].l / 2 - d, cv::Scalar(255), -1, 0);
+        cv::circle(mask_for_dif, cv::Point(diff.cols / 2, diff.rows / 2), diff.cols / 2 - d / 2, cv::Scalar(255), -1, 0);
+        //cv::circle(mask_for_dif, cv::Point(diff.cols / 2, diff.rows / 2), 100 /*params[meter_type].l / 2 - d*/, cv::Scalar(255), -1, 0);
+
+        cv::Mat dif;  //meter領域のみ残した差分画像
+        diff.copyTo(dif, mask_for_dif);
+        //diff.copyTo(dif);
+        ///////////////////
+        cv::imshow("dif", dif);
+
+        //cv::imwrite("./diffjust/" + meter_type_s + "/diff/" + std::to_string(it) + (type ? "pointer" : "normal") + ".png", dif);
+        cv::erode(dif, dif, cv::Mat(), cv::Point(-1, -1), ite);
+        cv::dilate(dif, dif, cv::Mat(), cv::Point(-1, -1), ite);
+
+
+        cv::imshow("diff", dif);
+        cv::imwrite("./diffjust/" + meter_type_s + "/diff_min/pic" + std::to_string(it) + (unsharp ? "unsharp" : "") + ".png", dif);
+
+
+        cv::Mat warped_dif;
+        cv::Mat dif_24;
+        cv::cvtColor(dif, dif_24, CV_GRAY2BGR);
+        warped.copyTo(warped_dif, dif_24);
+        cv::imshow("warped_dif", warped_dif);
+
+
+        cv::ximgproc::thinning(dif, dif, cv::ximgproc::WMF_EXP);
+
+
+        std::pair<double, cv::Mat> aa;
+        aa.first = 0.;
+        aa = Readability::pointerDetection(dif);
+
+        if (record) {
+            ofs << it << ',' << aa.first << ',' << std::endl;
+        }
+
+
+        std::cout << aa.first << std::endl;
+        cv::imwrite("./diffjust/" + meter_type_s + "/reading/" + std::to_string(it) + "min.png", aa.second);
+        //        cv::waitKey();
 
         //optimize Homography
 
@@ -390,8 +516,8 @@ int message(int argc, char** argv)
     mp["V"] = 1;
 
 
-    //meter_type_s = argv[1];
-    meter_type_s = "V";
+    meter_type_s = argv[2];
+    //meter_type_s = "T";
     std::cout << "type of analog meter:" << (meter_type_s == "T" ? "ThermoMeter" : "Vacuum") << std::endl;
     meter_type = mp[meter_type_s];
 
@@ -403,7 +529,7 @@ int message(int argc, char** argv)
 
 
     //tmp = argv[3];
-    tmp = "0";
+    tmp = "1";
     record = std::stoi(tmp);
     std::cout << "record? :" << (record ? "Yes" : "No") << std::endl;
 
