@@ -1,13 +1,13 @@
-#include "AdaptiveIntegralThresholding/thresh.hpp"
 #include "Eigen/Dense"
 #include "common/init.hpp"
+#include "external/AdaptiveIntegralThresholding/thresh.hpp"
+#include "external/cmdline/cmdline.h"
 #include "params/pose_params.hpp"
+#include "pos/Homography.hpp"
 #include "pos/calib.hpp"
-#include "pos/module.hpp"
 #include "read/difference.hpp"
 #include "read/readability.hpp"
 #include "read/template.hpp"
-#include <cmdline.h>
 #include <fstream>
 #include <iostream>
 #include <opencv2/imgproc.hpp>
@@ -71,7 +71,7 @@ int ite = 1;
 
 int main(int argc, char** argv)
 {
-    cmdline::parser parser;
+    //    cmdline::parser parser;
     //入力が正しいか確認
 
     if (message(argc, argv)) {
@@ -194,7 +194,7 @@ int main(int argc, char** argv)
         }
 
         H = Module::getHomography(edge_temp, edge);
-        return 0;
+        //        return 0;
 
         //edgeでalignmentできたらいいよねって話
         /*        cv::Mat gray_edge;
@@ -261,6 +261,7 @@ int main(int argc, char** argv)
         //diff.copyTo(dif);
         ///////////////////
         cv::imshow("dif", dif);
+        cv::waitKey();
 
         //cv::imwrite("./diffjust/" + meter_type_s + "/diff/" + std::to_string(it) + (type ? "pointer" : "normal") + ".png", dif);
         cv::erode(dif, dif, cv::Mat(), cv::Point(-1, -1), ite);

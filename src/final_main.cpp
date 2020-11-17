@@ -1,21 +1,18 @@
 #include "Eigen/Dense"
+#include "common/class.h"
 #include "common/init.hpp"
 #include "external/AdaptiveIntegralThresholding/thresh.hpp"
+#include "external/cmdline/cmdline.h"
 #include "params/pose_params.hpp"
 #include "pos/Homography.hpp"
 #include "pos/calib.hpp"
 #include "read/difference.hpp"
 #include "read/readability.hpp"
 #include "read/template.hpp"
-#include "sub/fit.hpp"
-#include <cstdlib>
 #include <fstream>
-#include <iomanip>
 #include <iostream>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/ximgproc.hpp>
-#include <string>
-#include <vector>
 
 Camera_pose camera;
 
@@ -36,7 +33,7 @@ std::vector<cv::Point> featurePoint2;
 cv::Mat H;
 cv::Mat HP;
 
-Eigen::Matrix<float, 6, 1> param;
+//Eigen::Matrix<float, 6, 1> param;
 
 //テスト画像のindex
 int it;
@@ -49,9 +46,6 @@ int type;
 int record;
 int message(int argc, char** argv);
 
-int opt_list[] = {5, 40, 45, 63, 89, 97, 104, 106};
-//int lis[] = {10, 11, 12, 17};
-int lis[] = {41};
 /*class Params
 {
 public:
@@ -78,6 +72,7 @@ int ite = 1;
 
 int main(int argc, char** argv)
 {
+    //    cmdline::parser parser;
     //入力が正しいか確認
 
     if (message(argc, argv)) {
@@ -85,6 +80,9 @@ int main(int argc, char** argv)
         return -1;
     }
 
+    //Camera class in class.hpp
+    Camera cam;
+    cam.init();
 
     //parameter
     Init::parseInit();
@@ -200,7 +198,7 @@ int main(int argc, char** argv)
         }
 
         H = Module::getHomography(edge_temp, edge);
-        return 0;
+        //        return 0;
 
         //edgeでalignmentできたらいいよねって話
         /*        cv::Mat gray_edge;
@@ -267,6 +265,7 @@ int main(int argc, char** argv)
         //diff.copyTo(dif);
         ///////////////////
         cv::imshow("dif", dif);
+        cv::waitKey();
 
         //cv::imwrite("./diffjust/" + meter_type_s + "/diff/" + std::to_string(it) + (type ? "pointer" : "normal") + ".png", dif);
         cv::erode(dif, dif, cv::Mat(), cv::Point(-1, -1), ite);
