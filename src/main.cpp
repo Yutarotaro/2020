@@ -3,8 +3,8 @@
 #include "external/AdaptiveIntegralThresholding/thresh.hpp"
 #include "external/cmdline/cmdline.h"
 #include "params/pose_params.hpp"
-#include "pos/Homography.hpp"
 #include "pos/calib.hpp"
+#include "pos/homography.hpp"
 #include "read/difference.hpp"
 #include "read/readability.hpp"
 #include "read/template.hpp"
@@ -150,7 +150,7 @@ int main(int argc, char** argv)
     init.copyTo(edge);
     temp.copyTo(edge_temp);
     //11/10ここで一回initを先鋭化しておく
-    int unsharp = 0;
+    int unsharp = 1;
     if (unsharp) {
         double k = 3.;
         cv::Mat kernel = (cv::Mat_<float>(3, 3) << 0, -k, 0,
@@ -282,7 +282,7 @@ int message(int argc, char** argv)
 
     meter_type_s = argv[2];
     //meter_type_s = "T";
-    std::cout << "type of analog meter:" << (meter_type_s == "T" ? "ThermoMeter" : "Vacuum") << std::endl;
+    std::cout << "type of analog meter:" << meter_type_s << std::endl;
     meter_type = mp[meter_type_s];
 
 
@@ -299,18 +299,4 @@ int message(int argc, char** argv)
 
 
     return 0;
-
-
-    /*
-    std::cout << "type of analog meter: ThermoMeter -> T or Vacuum -> V" << std::endl;
-    std::cin >> meter_type_s;
-
-    meter_type = mp[meter_type_s];
-
-    std::cout << "choose type of homography \n 0:scale-based, 1:pointer based" << std::endl;
-    std::cin >> type;
-
-    std::cout << "record in csv file?\n 0:No, 1: Yes" << std::endl;
-    std::cin >> record;
-    */
 }

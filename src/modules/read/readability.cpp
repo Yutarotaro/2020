@@ -1,5 +1,5 @@
 #include "../common/init.hpp"
-#include "../pos/Homography.hpp"
+#include "../pos/homography.hpp"
 #include "readability.hpp"
 #include <leptonica/allheaders.h>
 #include <opencv2/dnn.hpp>
@@ -279,12 +279,21 @@ std::pair<double, cv::Mat> pointerDetection(cv::Mat src, cv::Mat origin)
 
 
     std::cout << "画像の大きさ: " << origin.rows << ' ' << origin.cols << std::endl;
-    std::cout << "tl: " << conti_tl << std::endl
-              << "br: " << conti_br << std::endl;
+    std::cout << "tl: " << conti_tl << std::endl;
 
-    //    if(
-    //   value -= CV_PI;
+    //針の先が第何象限にあるか
+    //row と col 自信ない
+    cv::Point center = cv::Point(origin.rows / 2, origin.cols / 2);
 
+    cv::Point tip = (std::abs(conti_tl.x - center.x) > std::abs(conti_br.x - center.x) ? conti_tl : conti_br);
+
+    if (tip.x < center.x) {
+        //if (tip.y < center.y) {  //第2象限
+        rad -= CV_PI;
+        //} else if (tip.y >= center.y) {
+        //  value -= CV_PI;
+        //}
+    }
 
     //この時点でvalueはrad
     //degに変更

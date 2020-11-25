@@ -11,6 +11,20 @@
 namespace Init
 {
 
+struct Feature {
+    std::vector<cv::KeyPoint> keypoints;
+    cv::Mat descriptors;
+
+    cv::Ptr<cv::Feature2D> feature;
+
+    Feature(cv::Mat img)
+    {
+
+        feature = cv::AKAZE::create();
+        feature->detectAndCompute(img, cv::Mat(), keypoints, descriptors);
+    }
+};
+
 class Params
 {
 public:

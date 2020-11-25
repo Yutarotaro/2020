@@ -1,6 +1,6 @@
 #include "common/init.hpp"
-#include "modules/pos/Homography.hpp"
 #include "modules/pos/calib.hpp"
+#include "modules/pos/homography.hpp"
 #include "modules/read/difference.hpp"
 #include "modules/read/template.hpp"
 #include "opencv2/highgui.hpp"
@@ -46,10 +46,8 @@ int main(int argc, char** argv)
     cv::Mat Base_clock = cv::imread("../pictures/meter_template/Base_clockdia_V.png", 1);
 
 
-    //基準画像の特徴点を事前に検出しておく
-    cv::Ptr<cv::Feature2D> feature;
-    feature = cv::AKAZE::create();
-    feature->detectAndCompute(Base_clock, cv::Mat(), keypoints1, descriptors1);
+    //Base_clockの特徴点を保存
+    Init::Feature Base(Base_clock);
 
 
     Module::pose p;
@@ -61,7 +59,9 @@ int main(int argc, char** argv)
     int st = std::stoi(argv[1]);
     int to = st;
 
-    std::ofstream ofs("./result_for_dia.csv");
+    std::string fileName = "./result_for_dia.csv";
+    std::ofstream ofs(fileName, std::ios::app);
+
     int ct = 0;
 
 
@@ -88,13 +88,40 @@ int main(int argc, char** argv)
                   << rvec << std::endl
                   << std::endl;
 
+        //Homgraphy Estimation
 
-        cv::Mat H = Module::getHomography(Base_clock, Now_clock);
-        std::cout << "Homography: " << camera.A.inv() * H * camera.A << std::endl;
+#if 0
+
+        cv::Mat roi = cv::imread("../pictures/dia_experiment_V/roi/pic" + std::to_string(i) + ".png", 1);
+        double temp_size = 784.;
+        double rate = std::max(temp_size / roi.cols, temp_size / roi.rows);
+
+        cv::Mat resized_roi;
+        cv::resize(roi, resized_roi, cv::Size(), rate, rate);
+
+
+        //Base_clock -> resized_roi
+        cv::Mat H_0 = Module::getHomography(Base_clock, resized_roi);
+
+        //resized_roi -> roi
+        Init::Feature f_resized_roi(resized_roi);
+        cv::Mat H_1 = Module::getHomography(f_resized_roi.keypoints, f_resized_roi.descriptors, resized_roi, roi);
+
+        //roi -> Now_clock
+        Init::Feature f_roi(roi);
+        cv::Mat H_2 = Module::getHomography(f_roi.keypoints, f_roi.descriptors, roi, Now_clock);
+        //要改良　画像のサイズがあっていないと意味がない
+        cv::Mat H_temp = H_0 * H_1 * H_2;
+
+
+#endif
+        //2 steps homography estimation
+        cv::Mat H = Module::getHomography(Base.keypoints, Base.descriptors, Base_clock, Now_clock);
         cv::Mat warped = cv::Mat::zeros(Now_clock.rows, Now_clock.cols, CV_8UC3);
         cv::warpPerspective(Now_clock, warped, H.inv(), warped.size());
 
-        cv::Mat H2 = Module::getHomography(Base_clock, warped);
+        cv::Mat H2 = Module::getHomography(Base.keypoints, Base.descriptors, Base_clock, warped);
+
 
         Module::pose r = Module::decomposeHomography(H * H2, camera.A);
 

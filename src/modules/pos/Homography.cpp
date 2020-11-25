@@ -109,7 +109,7 @@ Mat getHomography(Mat Src1, Mat Src2)
     //for masking
     //imwrite("./diffjust/V/match/match_inlier_mask" + std::to_string(it) + ".png", drawMatch_inlier);
 
-    cv::waitKey();
+    //    cv::waitKey();
 
 
     return H;
@@ -118,7 +118,6 @@ Mat getHomography(Mat Src1, Mat Src2)
 
 Mat getHomography(vector<KeyPoint> keypoints, Mat descriptors, Mat Src1, Mat Src2)
 {
-    std::cout << "ok dao zheli" << std::endl;
     vector<KeyPoint> keypoints2;
     Mat descriptors2;
 
@@ -194,10 +193,10 @@ Mat getHomography(vector<KeyPoint> keypoints, Mat descriptors, Mat Src1, Mat Src
 
     //imshow("DrawMatch_inlier_detail", drawMatch_inlier);
     //imwrite("./output/match_inlier_detail" + std::to_string(it) + ".jpg", drawMatch_inlier);
-#if 0
-    imshow("Inliner", drawMatch_inlier);  
+#if 1
+    imshow("Inliner", drawMatch_inlier);
     imwrite("./match_inliner.jpg", drawMatch_inlier);
-    cv::waitKey(0.1);
+    //cv::waitKey(0);
 #endif
     return HP;
 }
