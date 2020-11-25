@@ -193,15 +193,15 @@ double judge(cv::Mat img, int num, int flag)
     return 0;
 }
 
-std::pair<double, cv::Mat> pointerDetection(cv::Mat src)
+std::pair<double, cv::Mat> pointerDetection(cv::Mat src, cv::Mat origin)
 {
     cv::Mat ret;
     src.copyTo(ret);
     cv::cvtColor(ret, ret, CV_GRAY2BGR);
 
     std::vector<cv::Vec3f> lines;
-    int votes = 50;
-    cv::HoughLines(src, lines, 1, 0.00001 /*CV_PI / 720.*/, votes, 0, 0);
+    int votes = 20;
+    cv::HoughLines(src, lines, 1, 0.0001 /*CV_PI / 720.*/, votes, 0, 0);
 
     std::cout << "Number of detected lines" << lines.size() << std::endl;
 
@@ -209,10 +209,15 @@ std::pair<double, cv::Mat> pointerDetection(cv::Mat src)
     int index = 0;
     double eps = 0.1;
     double value = 0.;
+    double rad = 0.;
+
+    cv::Point pt1, pt2;  //検出された直線の端点が入る
+
 
     if (lines.size()) {
         for (size_t i = 0; i < lines.size(); ++i) {
-            if (lines[i][2] > tmp && std::abs(lines[i][1] - CV_PI / 2.) > eps) {
+            //投票数が一番多い直線を選ぶ
+            if (lines[i][2] > tmp /*&& std::abs(lines[i][1] - CV_PI / 2.) > eps*/) {
                 index = i;
                 tmp = lines[i][2];
             }
@@ -221,7 +226,6 @@ std::pair<double, cv::Mat> pointerDetection(cv::Mat src)
         float rho = lines[index][0], theta = lines[index][1];
         std::cout << index << "-th " << lines[index][2] << " votes" << std::endl
                   << lines[index][1] << " [rad]" << std::endl;
-        cv::Point pt1, pt2;
         double a = std::cos(theta), b = std::sin(theta);
         double x0 = a * rho, y0 = b * rho;
         pt1.x = cvRound(x0 + 1000 * (-b));
@@ -229,14 +233,65 @@ std::pair<double, cv::Mat> pointerDetection(cv::Mat src)
         pt2.x = cvRound(x0 - 1000 * (-b));
         pt2.y = cvRound(y0 - 1000 * (a));
         cv::line(ret, pt1, pt2, cv::Scalar(0, 0, 255), 2, cv::LINE_AA);
-        value = lines[index][1];
+        rad = lines[index][1];
+
+        std::cout << "pt1.x: " << pt1.x << "pt1.y: " << pt1.y << "pt2.x: " << pt2.x << "pt2.y: " << pt2.y << std::endl;
     }
+
+    //TODO:針の向き判定
+    //line上の点群の重心が上下左右どちらにあるかで場合わけ
+    //直線の定式化
+    double slope = (double)(pt2.y - pt1.y) / (pt2.x - pt1.x);
+    auto y = [=](int x) -> int {
+        return slope * (x - pt1.x) + pt1.y;
+    };
+
+    cv::Mat bgr_origin;
+    cv::cvtColor(origin, bgr_origin, CV_GRAY2BGR);
+
+
+    std::vector<cv::Point2d> points_on_line;
+    cv::Point2d conti_tl = cv::Point(10000, 10000);
+    cv::Point2d conti_br = cv::Point(0, 0);
+    int conti_thre = 10;
+    int conti_count = 0;
+
+    for (int i = 0; i < src.cols; ++i) {
+        if (y(i) >= 0 && y(i) <= src.rows) {
+            if (origin.at<unsigned char>(cvRound(y(i)), i)) {
+                conti_count++;
+                points_on_line.push_back(cv::Point(i, cvRound(y(i))));
+                cv::circle(bgr_origin, cv::Point(i, cvRound(y(i))), 3, cv::Scalar(255, 0, 0), -1, cv::LINE_AA);
+            } else {
+                if (conti_count >= conti_thre) {
+                    conti_tl.x = std::min((int)conti_tl.x, i - conti_count);
+                    conti_tl.y = std::min((int)conti_tl.y, y(i - conti_count));
+                    conti_br.x = std::max((int)conti_br.x, i - 1);
+                    conti_br.y = std::max((int)conti_br.y, y(i - 1));
+                }
+                conti_count = 0;
+            }
+        }
+    }
+
+    cv::imshow("origin", bgr_origin);
+    //cv::waitKey();
+
+
+    std::cout << "画像の大きさ: " << origin.rows << ' ' << origin.cols << std::endl;
+    std::cout << "tl: " << conti_tl << std::endl
+              << "br: " << conti_br << std::endl;
+
+    //    if(
+    //   value -= CV_PI;
 
 
     //この時点でvalueはrad
     //degに変更
 
-    value = params[meter_type].front_value + params[meter_type].k * (value - params[meter_type].front_rad);
+    std::cout << rad << ' ' << params[meter_type].front_rad << std::endl;
+
+    value = params[meter_type].front_value + params[meter_type].k * (rad - params[meter_type].front_rad);
 
     //    cv::imwrite("./reading/no" + std::to_string(it) + (type ? "pointer" : "normal") + "_" + std::to_string(value) + ".png", ret);
 
@@ -278,13 +333,9 @@ double read(cv::Mat src)
 
     //TODO:Hough Transform
     //PCAにしたい
-    std::pair<double, cv::Mat> a = pointerDetection(pointerImage);
+    std::pair<double, cv::Mat> a;
+    //= pointerDetection(pointerImage);
 
-
-    //cv::imshow("temp", temp);
-    //cv::imshow("pointer", lines);
-
-    //    cv::waitKey();
     return a.first;
 }
 }  // namespace Readability

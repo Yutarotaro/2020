@@ -45,14 +45,9 @@ int parseInit()
     if (!fs2.isOpened()) {
         std::cerr << "File can not be opened." << std::endl;
     }
-    //    fs2["pos"] >> pos;
-    //   fs2["R"] >> R;
-
-    //posをCamera1 Coordinateに変換
-    //t = R * pos;
 
     //zのみマシな値に差し替える
-    camera.pos.at<double>(0, 2) = z;
+    //    camera.pos.at<double>(0, 2) = z;
     camera.t = camera.R * camera.pos;
 
     std::cout << "init ok" << std::endl;

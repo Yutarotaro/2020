@@ -1,5 +1,6 @@
 #include "Homography.hpp"
 #include "opencv2/calib3d.hpp"
+#include "params/calibration_params.hpp"
 #include "params/pose_params.hpp"
 #include <iostream>
 #include <opencv2/opencv.hpp>
@@ -10,17 +11,10 @@ using namespace std;
 
 extern Camera_pose camera;
 
-#define PAT_ROW (7)  /* パターンの行数 */
-#define PAT_COL (10) /* パターンの列数 */
-#define PAT_SIZE (PAT_ROW * PAT_COL)
-#define ALL_POINTS (IMAGE_NUM * PAT_SIZE)
-//#define CHESS_SIZE (270. * 1.6 / 23.8) /* パターン1マスの1辺サイズ[mm] */
-#define CHESS_SIZE (24) /* パターン1マスの1辺サイズ[mm] */
-
 
 namespace Calib
 {
-void calibration(cv::Mat& img, Module::pose& p)
+void calibration(cv::Mat& img, Module::pose& p, int flag)
 {
     int j, k;
     // cv::Mat src_img[IMAGE_NUM];
@@ -105,7 +99,6 @@ void calibration(cv::Mat& img, Module::pose& p)
 
 
     cv::Mat R_0, t_0;
-
     cv::Rodrigues(rvec, R_0);
 
     t_0 = R_0.inv() * (-tvec);
@@ -113,10 +106,15 @@ void calibration(cv::Mat& img, Module::pose& p)
     cout << "worldでの並進" << endl
          << t_0 << endl;
 
+    //imgのカメラの外部パラメータ
     p.position = tvec;
     p.orientation = R_0;
 
-    //   cv::imshow("Calibration", img);
-    //  cv::waitKey(1);
+    if (flag) {
+        camera.R = R_0;
+        camera.t = R_0.inv() * tvec;
+        camera.t.at<double>(2, 0) += Param::Calibration::offset;
+        std::cout << "camera.t" << camera.t << std::endl;
+    }
 }
 }  // namespace Calib

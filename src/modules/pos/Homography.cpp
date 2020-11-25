@@ -109,6 +109,8 @@ Mat getHomography(Mat Src1, Mat Src2)
     //for masking
     //imwrite("./diffjust/V/match/match_inlier_mask" + std::to_string(it) + ".png", drawMatch_inlier);
 
+    cv::waitKey();
+
 
     return H;
 }
@@ -216,6 +218,7 @@ pose decomposeHomography(cv::Mat H, cv::Mat A)
 
 
     //    cv::Mat normal = (cv::Mat_<double>(3, 1) << 0, 1, 0);
+    //    0, 0, -1 ではない本当は
     cv::Mat normal = (cv::Mat_<double>(3, 1) << 0, 0, -1);
     cv::Mat normal1 = R1 * normal;
 

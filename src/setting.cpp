@@ -24,7 +24,8 @@ int main(int argc, char* argv[])
         ostringstream ostr;
         //チェスボード写真のpath
         //       ostr << filepath << "/pictures/calib_img/calib" << i << ".png";
-        ostr << filepath << "/pictures/meter_experiment/calib/pic" << i << ".JPG";
+        ostr << filepath << "/pictures/dia_experiment_V/calib/pic" << i << ".JPG";
+        //ostr << filepath << "/pictures/meter_experiment/calib/pic" << i << ".JPG";
         //        ostr << filepath << "/pictures/calib/pic" << i << ".JPG";
         cv::Mat src = cv::imread(ostr.str(), 1);
         if (src.empty()) {
@@ -34,6 +35,7 @@ int main(int argc, char* argv[])
             srcImages.push_back(src);
         }
     }
+
 
     // (2)3次元空間座標の設定
 
@@ -76,7 +78,7 @@ int main(int argc, char* argv[])
         img_points.push_back(corners);
 
         cv::imshow("Calibration", srcImages[i]);
-        //        cv::waitKey(1);
+        //        cv::waitKey(1000);
     }
     cv::destroyWindow("Calibration");
 
@@ -99,7 +101,9 @@ int main(int argc, char* argv[])
         tvecs);
 
     cv::Mat R_tmp;
-    for (int i = IMAGE_NUM - 1; i < IMAGE_NUM; i++) {
+    //後ろから2枚
+    for (int i = IMAGE_NUM - 2; i < IMAGE_NUM; i++) {
+        std::cout << i << "-th image position" << std::endl;
         cv::Rodrigues(rvecs[i], R_tmp);
         std::cout << R_tmp.inv() * (-tvecs[i]) << std::endl
                   << std::endl;
@@ -114,10 +118,12 @@ int main(int argc, char* argv[])
 
     cv::Mat t = R_tmp.inv() * (-tvecs[IMAGE_NUM - 1]);
 
-    t.at<double>(0, 2) -= Params::Calibration::offset;
+    t.at<double>(0, 2) -= Param::Calibration::offset;
 
     fs << "intrinsic" << cam_mat;
     fs << "distortion" << dist_coefs;
+
+    //最後の画像の外部パラメータ　いる？
     fs << "R" << R_tmp;
     fs << "t" << t;
     fs.release();

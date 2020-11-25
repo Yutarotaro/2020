@@ -31,7 +31,8 @@ public:
 
 //0:T, 1:V
 Params params[] = {{cv::Point(2214, 1294), 310, "meter_experiment", "-3", cv::Point(1899, 979), 620},
-    {cv::Point(2158, 1383), 340, "meter_experiment_V", "-1", cv::Point(1808, 1033), 680}};
+    {cv::Point(2158, 1383), 340, "meter_experiment_V", "-1", cv::Point(1808, 1033), 680},
+    {cv::Point(2160, 1708), 372, "dia_experiment_V", "-1", cv::Point(1762, 1315), 784}};
 
 std::map<std::string, int> mp;
 
@@ -65,8 +66,9 @@ void message()
 {
     mp["T"] = 0;
     mp["V"] = 1;
+    mp["dia_V"] = 2;
 
-    std::cout << "type of analog meter: ThermoMeter -> T or Vacuum -> V" << std::endl;
+    std::cout << "type of analog meter: ThermoMeter -> T or Vacuum -> V or dia_V -> dia_V" << std::endl;
     std::cin >> meter_type_s;
 
 

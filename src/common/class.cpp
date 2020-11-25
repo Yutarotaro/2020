@@ -16,3 +16,7 @@ void Camera::init(void)
 
     std::cout << "Initialized!" << std::endl;
 }
+
+void Camera::pose_estimation(void)
+{
+}

@@ -200,7 +200,7 @@ int main(int argc, char** argv)
         }
 
         H = Module::getHomography(edge_temp, edge);
-        return 0;
+        //        return 0;
 
         //edgeでalignmentできたらいいよねって話
         /*        cv::Mat gray_edge;
@@ -252,6 +252,7 @@ int main(int argc, char** argv)
 
         cv::imshow("bwi", bwi);
         cv::imshow("bwt", bwt);
+
 
         cv::Mat diff = bwi - bwt;
 

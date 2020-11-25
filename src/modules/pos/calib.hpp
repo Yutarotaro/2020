@@ -9,7 +9,7 @@
 namespace Calib
 {
 
-void calibration(cv::Mat& img, Module::pose& p);
+void calibration(cv::Mat& img, Module::pose& p, int flag);
 }  // namespace Calib
 
 #endif
