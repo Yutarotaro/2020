@@ -1,4 +1,4 @@
-#include "Homography.hpp"
+#include "homography.hpp"
 #include "opencv2/calib3d.hpp"
 #include "opencv2/features2d.hpp"
 #include "params/pose_params.hpp"
@@ -195,7 +195,7 @@ Mat getHomography(vector<KeyPoint> keypoints, Mat descriptors, Mat Src1, Mat Src
     //imwrite("./output/match_inlier_detail" + std::to_string(it) + ".jpg", drawMatch_inlier);
 #if 1
     imshow("Inliner", drawMatch_inlier);
-    imwrite("./match_inliner.jpg", drawMatch_inlier);
+    imwrite("./diffjust/" + meter_type_s + "/match/pose/match_inlier_" + std::to_string(it) + ".png", drawMatch_inlier);
     //cv::waitKey(0);
 #endif
     return HP;

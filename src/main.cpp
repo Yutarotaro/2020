@@ -82,6 +82,11 @@ int main(int argc, char** argv)
     }
 
 
+    std::string s = "";
+    if (argc >= 4) {
+        s = "2";
+    }
+
     //parameter
     Init::parseInit();
 
@@ -92,7 +97,11 @@ int main(int argc, char** argv)
 
     std::cout << meter_type_s << std::endl;
     cv::Mat Base_clock = cv::imread("../pictures/meter_template/Base_clock" + meter_type_s + ".png", 1);
-    temp = cv::imread("../pictures/meter_template/temp" + meter_type_s + ".png", 1);
+    temp = cv::imread("../pictures/meter_template/temp" + meter_type_s + s + ".png", 1);
+
+
+    //Base_clockの特徴点を保存
+    Init::Feature Temp(temp);
 
 
     //基準画像の特徴点を事前に検出しておく
@@ -105,8 +114,8 @@ int main(int argc, char** argv)
     it = std::stoi(argv[1]);
 
     ////for more accurate Homography
-    featurePoint2.clear();          //特徴点ベクトルの初期化
-    featurePoint2.shrink_to_fit();  //メモリの開放
+    //featurePoint2.clear();          //特徴点ベクトルの初期化
+    //featurePoint2.shrink_to_fit();  //メモリの開放
 
 
     std::cout << std::endl
@@ -169,6 +178,7 @@ int main(int argc, char** argv)
     }
 
     H = Module::getHomography(edge_temp, edge);
+    std::cout << H << std::endl;
     //        return 0;
 
     //edgeでalignmentできたらいいよねって話
@@ -220,10 +230,11 @@ int main(int argc, char** argv)
     cv::imshow("bwi", bwi);
     cv::imshow("bwt", bwt);
 
+
     cv::Mat diff = bwi - bwt;
 
 
-    int d = 60;
+    int d = 90;
     cv::Mat mask_for_dif = cv::Mat::zeros(diff.rows, diff.cols, CV_8UC1);
     cv::circle(mask_for_dif, cv::Point(diff.cols / 2, diff.rows / 2), diff.cols / 2 - d / 2, cv::Scalar(255), -1, 0);
 
@@ -248,6 +259,7 @@ int main(int argc, char** argv)
     cv::cvtColor(dif, dif_24, CV_GRAY2BGR);
     warped.copyTo(warped_dif, dif_24);
     cv::imshow("warped_dif", warped_dif);
+    //    cv::imwrite("./diffjust/" + meter_type_s + "/diff_min/pic" + std::to_string(it) + ".png", warped_dif);
 
 
     cv::Mat thinned_dif;
@@ -259,14 +271,14 @@ int main(int argc, char** argv)
     aa = Readability::pointerDetection(thinned_dif, dif);
 
     if (record) {
-        ofs << it << ',' << aa.first << ',' << std::endl;
+        ofs << it << ',' << aa.first << ',' << (aa.first ? 1 : 0) << ',' << std::endl;
     }
 
 
     std::cout << aa.first << std::endl;
     cv::imwrite("./diffjust/" + meter_type_s + "/reading/" + std::to_string(it) + "min.png", aa.second);
 
-    //cv::waitKey();
+    //    cv::waitKey();
 
 
     // optimize Homography

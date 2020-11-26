@@ -27,180 +27,20 @@ namespace Readability
 //tesseract::TessBaseAPI* api = new tesseract::TessBaseAPI();
 //auto ocr = std::make_unique<tesseract::TessBaseAPI>();
 
-double judge(cv::Mat img, int num, int flag)
+int judge(cv::Mat img, int num, int flag)
 {
-
-    cv::Mat tmp[3];
-    tmp[0] = cv::imread("../pictures/template/0.png", 1);
-    tmp[1] = cv::imread("../pictures/template/120_1.png", 1);
-    tmp[2] = cv::imread("../pictures/template/center.png", 1);
-
-    cv::Mat result_mat;
-    cv::Mat gray_img;
-    cv::Mat tmpl;
-
-    /*
-    for (int i = 0; i < 3; ++i) {
-        temp[i].copyTo(tmpl);
-
-        cv::cvtColor(img, gray_img, cv::COLOR_BGR2GRAY, 0);  //カメラ画像をグレースケールに変換
-        cv::cvtColor(tmpl, tmpl, cv::COLOR_BGR2GRAY, 0);     //カメラ画像をグレースケールに変換
-
-        cv::matchTemplate(gray_img, tmpl, result_mat, CV_TM_CCOEFF_NORMED);
-        cv::normalize(result_mat, result_mat, 0, 1, cv::NORM_MINMAX, -1, cv::Mat());
-
-        double minVal;
-        double maxVal;
-        cv::Point minLoc, maxLoc, matchLoc;
-        cv::minMaxLoc(result_mat, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat());
-        matchLoc = maxLoc;
-
-        //cv::rectangle(img, matchLoc, cv::Point(matchLoc.x + 0.7 * tmpl.cols, matchLoc.y + 0.7 * tmpl.rows), CV_RGB(255, 0, 0), 3);
-    }
-    */
-
-    //    cv::Mat out = edgeDetection(img);
-    //  cv::imshow("edge", out);
-
-    //    cv::Canny(gray_img, gray_img, 10, 155);
-
-    //  cv::imshow("Canny", gray_img);
-    // int niters = 1;
-    //    cv::dilate(gray_img, gray_img, cv::Mat(), cv::Point(-1, -1), niters);
-    //    cv::erode(gray_img, gray_img, cv::Mat(), cv::Point(-1, -1), niters);
-
-    cv::Mat now_circle;
-    cv::Mat mask = cv::Mat::zeros(img.rows, img.cols, CV_8UC1);
-    cv::circle(mask, cv::Point(310, 310), 310, cv::Scalar(255), -1, CV_AA);
-    img.copyTo(now_circle, mask);
-
-    cv::Mat now_bin, temp_bin;
-
-
-    int iter = 2;
-    cv::Mat res;
-
-    //TODO:2値化してxorとりたい
-
-    cv::absdiff(now_circle, temp, res);
-    //    cv::bitwise_xor(temp, now_circle, res);
-
-    //unsharp mask
-    const float k = -1.0;
-    Mat sharpningKernel4 = (Mat_<float>(3, 3) << 0.0, k, 0.0, k, 5.0, k, 0.0, k, 0.0);
-    Mat sharpningKernel8 = (Mat_<float>(3, 3) << k, k, k, k, 9.0, k, k, k, k);
-
-    // 先鋭化フィルタを適用する
-    //    cv::filter2D(res, res, res.depth(), sharpningKernel8);
-
-
-    //processing
-    cv::erode(res, res, cv::Mat(), cv::Point(-1, -1), iter);
-    cv::dilate(res, res, cv::Mat(), cv::Point(-1, -1), iter);
-
-    cv::Mat gray;
-    cv::cvtColor(res, gray, CV_BGR2GRAY);
-    cv::Canny(gray, gray, 0, 1055, 3);
-
-
-    //    cv::imshow("diff", res);
-    //   cv::imshow("edge", gray);
-    cv::imwrite("./diff/xor" + std::to_string(num) + (flag ? "HR" : "HR.inv()") + (type ? "pointer" : "normal") + ".png", res);
-
-    return 0;
-
-    double value = 0.;
-    if (flag) {
-        value = read(res);
-    }
-
-    return value;
-
-#if 0
-    std::vector<std::vector<cv::Point>> contours;
-    std::vector<cv::Vec4i> hierarchy;
-
-    cv::findContours(gray_img,  // 入力画像，8ビット，シングルチャンネル．0以外のピクセルは 1 、0のピクセルは0として扱う。処理結果として image を書き換えることに注意する.
-        contours,               // 輪郭を点ベクトルとして取得する
-        hierarchy,              // hiararchy ? オプション．画像のトポロジーに関する情報を含む出力ベクトル．
-        CV_RETR_EXTERNAL,       // 輪郭抽出モード
-        CV_CHAIN_APPROX_NONE    // 輪郭の近似手法
-    );
-
-    cv::Mat tmp;
-    img.copyTo(tmp);
-
-    int ct = 0;
-
-    //digits detection
-    int mar = 5;
-    for (int i = 0; i < contours.size(); i++) {
-        if (1) {
-            cv::Rect brect = cv::boundingRect(cv::Mat(contours[i]).reshape(2));
-            cv::rectangle(tmp, brect.tl(), brect.br(), cv::Scalar(190, 30, 100), 2, CV_AA);
-
-
-            if (brect.tl().x - mar > 0 && brect.tl().y - mar > 0 && brect.br().x + mar < img.cols && brect.br().y + mar < img.rows) {
-                //if (brect.tl().x > 0 && brect.tl().y > 0 && brect.br().x - 1 < img.rows && brect.br().y - 1 < img.cols) {
-                int brx = brect.br().x + mar;
-                int bry = brect.br().y + mar;
-
-                int tlx = brect.tl().x - mar;
-                int tly = brect.tl().y - mar;
-
-                int w = brx - tlx;
-                int h = bry - tly;
-
-
-                //if (h * w > 500) {
-                if (w * h > 900 && w >= 22 && w <= 40 && h >= 48 && h <= 60) {
-                    //                    std::cout << tlx << ' ' << tly << ' ' << h << ' ' << w << std::endl;
-                    //cv::Rect roi2(cv::Point(tlx, tly), cv::Size(w, h));
-                    cv::rectangle(tmp, brect.tl(), brect.br(), cv::Scalar(190, 30, 100), 2, CV_AA);
-
-                    //    cv::Rect roi2(brect.tl(), brect.br());
-                    cv::Rect roi2(cv::Point(tlx, tly), cv::Point(brx, bry));
-                    cv::Mat right;
-                    right = img(roi2);  // 切り出し画像
-                    if (cv::imwrite("./candidate/" + std::to_string(ct) + ".png", right)) {
-                        ++ct;
-                    }
-                }
-            }
-        } else {
-            // CV_*C2型のMatに変換してから，外接矩形（回転あり）を計算
-            cv::Point2f center, vtx[4];
-            float radius;
-            cv::RotatedRect box = cv::minAreaRect(cv::Mat(contours[i]).reshape(2));
-            // 外接矩形（回転あり）を描画
-            box.points(vtx);
-            for (int i = 0; i < 4; ++i) {
-                cv::line(img, vtx[i], vtx[i < 3 ? i + 1 : 0], cv::Scalar(100, 100, 200), 2, CV_AA);
-
-                if (vtx[0].x > 0 && vtx[0].y > 0) {
-                    //cv::Rect roi2(vtx[0], cv::Size(vtx[1].x - vtx[0].x, vtx[2].y - vtx[0].y) );
-                }
-            }
-        }
-    }
-    cv::imwrite("./output/minAreaRect.jpg", tmp);
-
-
-    cv::imshow("result", tmp);
-
-#endif
-
-    return 0;
 }
 
 std::pair<double, cv::Mat> pointerDetection(cv::Mat src, cv::Mat origin)
 {
+    cv::imwrite("src.png", src);
     cv::Mat ret;
     src.copyTo(ret);
     cv::cvtColor(ret, ret, CV_GRAY2BGR);
 
+
     std::vector<cv::Vec3f> lines;
-    int votes = 20;
+    int votes = 50;
     cv::HoughLines(src, lines, 1, 0.0001 /*CV_PI / 720.*/, votes, 0, 0);
 
     std::cout << "Number of detected lines" << lines.size() << std::endl;
@@ -237,6 +77,7 @@ std::pair<double, cv::Mat> pointerDetection(cv::Mat src, cv::Mat origin)
 
         std::cout << "pt1.x: " << pt1.x << "pt1.y: " << pt1.y << "pt2.x: " << pt2.x << "pt2.y: " << pt2.y << std::endl;
     }
+    cv::imwrite("hough.png", ret);
 
     //TODO:針の向き判定
     //line上の点群の重心が上下左右どちらにあるかで場合わけ
@@ -253,7 +94,7 @@ std::pair<double, cv::Mat> pointerDetection(cv::Mat src, cv::Mat origin)
     std::vector<cv::Point2d> points_on_line;
     cv::Point2d conti_tl = cv::Point(10000, 10000);
     cv::Point2d conti_br = cv::Point(0, 0);
-    int conti_thre = 10;
+    int conti_thre = 20;
     int conti_count = 0;
 
     for (int i = 0; i < src.cols; ++i) {
@@ -261,13 +102,16 @@ std::pair<double, cv::Mat> pointerDetection(cv::Mat src, cv::Mat origin)
             if (origin.at<unsigned char>(cvRound(y(i)), i)) {
                 conti_count++;
                 points_on_line.push_back(cv::Point(i, cvRound(y(i))));
-                cv::circle(bgr_origin, cv::Point(i, cvRound(y(i))), 3, cv::Scalar(255, 0, 0), -1, cv::LINE_AA);
             } else {
                 if (conti_count >= conti_thre) {
                     conti_tl.x = std::min((int)conti_tl.x, i - conti_count);
                     conti_tl.y = std::min((int)conti_tl.y, y(i - conti_count));
                     conti_br.x = std::max((int)conti_br.x, i - 1);
                     conti_br.y = std::max((int)conti_br.y, y(i - 1));
+
+                    for (int j = i - conti_count; j <= i; ++j) {
+                        cv::circle(bgr_origin, cv::Point(j, cvRound(y(j))), 3, cv::Scalar(255, 0, 0), -1, cv::LINE_AA);
+                    }
                 }
                 conti_count = 0;
             }
@@ -275,25 +119,25 @@ std::pair<double, cv::Mat> pointerDetection(cv::Mat src, cv::Mat origin)
     }
 
     cv::imshow("origin", bgr_origin);
+    cv::imwrite("bgr.png", bgr_origin);
     //cv::waitKey();
 
 
-    std::cout << "画像の大きさ: " << origin.rows << ' ' << origin.cols << std::endl;
-    std::cout << "tl: " << conti_tl << std::endl;
+    //    std::cout << "画像の大きさ: " << origin.rows << ' ' << origin.cols << std::endl;
+    std::cout << "tl: " << conti_tl << " br: " << conti_br << std::endl;
 
     //針の先が第何象限にあるか
     //row と col 自信ない
     cv::Point center = cv::Point(origin.rows / 2, origin.cols / 2);
 
+    //中心からより離れている方が先端
     cv::Point tip = (std::abs(conti_tl.x - center.x) > std::abs(conti_br.x - center.x) ? conti_tl : conti_br);
 
     if (tip.x < center.x) {
-        //if (tip.y < center.y) {  //第2象限
+        //第2,3象限ならば，piだけ引く
         rad -= CV_PI;
-        //} else if (tip.y >= center.y) {
-        //  value -= CV_PI;
-        //}
     }
+
 
     //この時点でvalueはrad
     //degに変更
@@ -303,6 +147,20 @@ std::pair<double, cv::Mat> pointerDetection(cv::Mat src, cv::Mat origin)
     value = params[meter_type].front_value + params[meter_type].k * (rad - params[meter_type].front_rad);
 
     //    cv::imwrite("./reading/no" + std::to_string(it) + (type ? "pointer" : "normal") + "_" + std::to_string(value) + ".png", ret);
+
+    //可読性xなら0を返す
+    ////estimation of readability
+    int line_center = y(center.x);
+    int readable_thre = 30;
+    if (std::abs(center.y - line_center) > readable_thre) {
+        value = 0;
+        std::cout << "Not Readable!!" << std::endl;
+    }
+
+
+    if (value) {
+        std::cout << "Readable!!" << std::endl;
+    }
 
 
     return {value, ret};
