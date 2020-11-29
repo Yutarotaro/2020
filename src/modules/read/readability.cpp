@@ -104,10 +104,15 @@ std::pair<double, cv::Mat> pointerDetection(cv::Mat src, cv::Mat origin)
                 points_on_line.push_back(cv::Point(i, cvRound(y(i))));
             } else {
                 if (conti_count >= conti_thre) {
-                    conti_tl.x = std::min((int)conti_tl.x, i - conti_count);
-                    conti_tl.y = std::min((int)conti_tl.y, y(i - conti_count));
-                    conti_br.x = std::max((int)conti_br.x, i - 1);
-                    conti_br.y = std::max((int)conti_br.y, y(i - 1));
+                    if (conti_tl.x > i - conti_count) {
+                        conti_tl.x = i - conti_count;
+                        conti_tl.y = y(i - conti_count);
+                    }
+
+                    if (conti_br.x < i - 1) {
+                        conti_br.x = i - 1;
+                        conti_br.y = y(i - 1);
+                    }
 
                     for (int j = i - conti_count; j <= i; ++j) {
                         cv::circle(bgr_origin, cv::Point(j, cvRound(y(j))), 3, cv::Scalar(255, 0, 0), -1, cv::LINE_AA);
@@ -117,6 +122,9 @@ std::pair<double, cv::Mat> pointerDetection(cv::Mat src, cv::Mat origin)
             }
         }
     }
+
+    cv::circle(bgr_origin, conti_tl, 3, cv::Scalar(0, 0, 255), -1, cv::LINE_AA);
+    cv::circle(bgr_origin, conti_br, 3, cv::Scalar(0, 0, 255), -1, cv::LINE_AA);
 
     cv::imshow("origin", bgr_origin);
     cv::imwrite("bgr.png", bgr_origin);

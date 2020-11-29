@@ -31,8 +31,8 @@ std::vector<cv::Point> featurePoint;
 cv::Mat H;
 cv::Mat HP;
 
-Init::Params params[] = {{70, 126, "meter_experiment", cv::Point(1899, 979), 620, 25.2, 1.81970, 80. / CV_PI},
-    {100, 92, "meter_experiment_V", cv::Point(1808, 1033), 680, -0.0101, 1.88299, 33.5 * 0.002 / CV_PI}};
+Init::Params params;
+
 
 int main(int argc, char** argv)
 {
@@ -60,7 +60,7 @@ int main(int argc, char** argv)
     int to = st;
 
     std::string fileName = "./result_for_dia.csv";
-    std::ofstream ofs(fileName, std::ios::app);
+    std::ofstream ofs(fileName, std::ios::app);  //追加モード
 
     int ct = 0;
 
@@ -68,19 +68,32 @@ int main(int argc, char** argv)
     for (int i = st; i <= to; i++) {
         std::cout << std::endl
                   << i << "-th image" << std::endl;
-        std::string path = "../pictures/dia_experiment_V/pic" + std::to_string(i) + ".JPG";
+        std::string path_calib = "../pictures/dia_experiment_V/pic" + std::to_string(i) + ".JPG";
 
-        cv::Mat Now_calib = cv::imread(path, 1);
-        cv::Mat Now_clock = cv::imread(path, 1);
+        //mask image
+        std::string path_clock = "../pictures/dia_experiment_V/mask/pic" + std::to_string(i) + ".png";
 
-        std::cout << "camera pose of test image" << std::endl;
+        cv::Mat Now_calib = cv::imread(path_calib, 1);
+        cv::Mat Now_clock = cv::imread(path_clock, 1);
+
         Module::pose q;
         Calib::calibration(Now_calib, q, 0);  //qに対象画像のカメラ視点，位置が入る
 
         cv::Mat R_calib = q.orientation * p.orientation.inv();
         cv::Rodrigues(R_calib, rvec);
 
+
+        //offset world coordinate
+        cv::Mat offset = (cv::Mat_<double>(3, 1) << -337., -73.2, -410.);
+
+        //横軸: メータからの距離(chess boardからではない)
+        cv::Mat distance = -q.orientation.inv() * q.position + offset;
+
+        std::cout << "from meter: " << distance << std::endl;
+
+
         cv::Mat calib_pos = p.orientation.inv() * p.position - q.orientation.inv() * q.position;
+        //cv::Mat calib_pos = p.orientation.inv() * p.position - q.orientation.inv() * q.position;
 
         std::cout << "chessboard並進ベクトル" << std::endl
                   << calib_pos << std::endl
@@ -141,17 +154,14 @@ int main(int argc, char** argv)
         cv::Rodrigues(angle_error_mat, angle_error);
         double error = cv::norm(angle_error);
 
-        std::cout << "dist by calib(mm) = " << cv::norm(calib_pos) << std::endl
+        std::cout << "distance to meter (mm) = " << cv::norm(distance) << std::endl
                   << "error dist(mm) = " << cv::norm(calib_pos - r.position) << std::endl
                   << cv::norm(r.orientation) * 180.0 / CV_PI << ' ' << cv::norm(rvec) * 180.0 / CV_PI << ' ' << error * 180.0 / CV_PI << std::endl;
 
-        if (cv::norm(calib_pos) < 1000)
-            ct++;
-        if (cv::norm(calib_pos) < 1000 && cv::norm(calib_pos) > cv::norm(calib_pos - r.position)) {
-            //            ofs << i << ',' << r.position << std::endl;
-            ofs << i << ',' << cv::norm(calib_pos) << ',' << cv::norm(calib_pos - r.position) << ',' << cv::norm(calib_pos - r.position) / cv::norm(calib_pos) << ',' << cv::norm(r.orientation) * 180.0 / CV_PI << ',' << cv::norm(rvec) * 180.0 / CV_PI << ',' << error * 180.0 / CV_PI << ',' << std::endl;
-        }
+        //if (cv::norm(calib_pos) > cv::norm(calib_pos - r.position)) {
+        //            ofs << i << ',' << r.position << std::endl;
+        ofs << i << ',' << cv::norm(distance) << ',' << cv::norm(calib_pos - r.position) << ',' << cv::norm(calib_pos - r.position) / cv::norm(calib_pos) << ',' << cv::norm(r.orientation) * 180.0 / CV_PI << ',' << cv::norm(rvec) * 180.0 / CV_PI << ',' << error * 180.0 / CV_PI << ',' << std::endl;
+        //}
     }
-    std::cout << "total number of images under 1000mm" << ct << std::endl;
     return 0;
 }

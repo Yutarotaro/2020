@@ -111,10 +111,10 @@ void calibration(cv::Mat& img, Module::pose& p, int flag)
     p.orientation = R_0;
 
     if (flag) {
+        //set 外部パラメータof template image
         camera.R = R_0;
         camera.t = R_0.inv() * tvec;
         camera.t.at<double>(2, 0) += Param::Calibration::offset;
-        std::cout << "camera.t" << camera.t << std::endl;
     }
 }
 }  // namespace Calib
