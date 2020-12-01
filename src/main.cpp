@@ -75,7 +75,6 @@ int main(int argc, char** argv)
 {
     //cmdline::parser parser;
     //入力が正しいか確認
-
     if (message(argc, argv)) {
         std::cout << "unexpected inputs" << std::endl;
         return -1;
@@ -97,42 +96,26 @@ int main(int argc, char** argv)
 
     std::cout << meter_type_s << std::endl;
     cv::Mat Base_clock = cv::imread("../pictures/meter_template/Base_clock" + meter_type_s + ".png", 1);
-    temp = cv::imread("../pictures/meter_template/temp" + meter_type_s + s + ".png", 1);
 
 
     //Base_clockの特徴点を保存
-    Init::Feature Temp(temp);
-
-
-    //基準画像の特徴点を事前に検出しておく
-    cv::Ptr<cv::Feature2D> feature;
-    feature = cv::AKAZE::create();
-    feature->detectAndCompute(temp, cv::Mat(), keypoints1, descriptors1);
+    Init::Feature Temp("../pictures/meter_template/temp" + meter_type_s + s + ".png");
 
 
     //index of test image
     it = std::stoi(argv[1]);
 
-    ////for more accurate Homography
-    //featurePoint2.clear();          //特徴点ベクトルの初期化
-    //featurePoint2.shrink_to_fit();  //メモリの開放
 
-
-    std::cout << std::endl
-              << "/////////////////////////////" << std::endl
-              << "picture " << it << std::endl;
+    std::cout << "picture " << it << std::endl;
     std::string path = "../pictures/" + params[meter_type].picdir + "/pic" + std::to_string(it) + ".JPG";
 
-    cv::Mat Now_clock_o = cv::imread(path, 1);  //for matching
-
-    cv::Mat Now_clock;
-
-    Now_clock_o.copyTo(Now_clock);
+    cv::Mat Now_clock = cv::imread(path, 1);  //for matching
 
 
-    //cv::Mat init = cv::imread("../pictures/meter_experiment_V/roi/pic" + std::to_string(it) + ".png", 1);
     //object detection で 切り取られたメータ領域の画像
     cv::Mat init = cv::imread("../pictures/" + params[meter_type].picdir + "/roi/pic" + std::string(argv[1]) + ".png", 1);
+    //将来的にinitの方もclass管理したい(名前が衝突するからNowにしたい)
+    //Init::Feature Now("../pictures/" + params[meter_type].picdir + "/roi/pic" + std::string(argv[1]) + ".png");
 
 
     std::ostringstream ostr;
@@ -145,19 +128,16 @@ int main(int argc, char** argv)
         std::cerr << "File can not be opened." << std::endl;
     }
 
-    //    fs["intrinsic"] >> cameraMatrix;
-    fs["H"] >> H;
-
 
     //template と roi のスケールを合わせる
-    double rate = std::max((double)temp.cols / init.cols, (double)temp.rows / init.rows);
+    double rate = std::max((double)Temp.img.cols / init.cols, (double)Temp.img.rows / init.rows);
     cv::resize(init, init, cv::Size(), rate, rate);
 
 
     cv::Mat edge;
     cv::Mat edge_temp;
     init.copyTo(edge);
-    temp.copyTo(edge_temp);
+    Temp.img.copyTo(edge_temp);
     //11/10ここで一回initを先鋭化しておく
     int unsharp = 1;
     if (unsharp) {
@@ -177,43 +157,21 @@ int main(int argc, char** argv)
             cv::BORDER_DEFAULT);
     }
 
-    H = Module::getHomography(edge_temp, edge);
+    H = Module::getHomography(Temp.keypoints, Temp.descriptors, edge_temp, edge);
     std::cout << H << std::endl;
     //        return 0;
 
-    //edgeでalignmentできたらいいよねって話
-    /*        cv::Mat gray_edge;
-        cv::cvtColor(edge, gray_edge, CV_BGR2GRAY);
-        cv::Mat bw_edge = cv::Mat::zeros(gray_edge.size(), CV_8UC1);
-        Adaptive::thresholdIntegral(gray_edge, bw_edge);
-        cv::erode(bw_edge, bw_edge, cv::Mat(), cv::Point(-1, -1), 1);
-
-        cv::Canny(bw_edge, bw_edge, 50, 255);
-        cv::imshow("bw_edge", bw_edge);
-        cv::waitKey();
-        */
-
 
     //initをtempに重ねて可読性判定
-    cv::Mat warped = cv::Mat::zeros(temp.rows, temp.cols, CV_8UC3);
+    cv::Mat warped = cv::Mat::zeros(Temp.img.rows, Temp.img.cols, CV_8UC3);
     cv::warpPerspective(init, warped, H.inv(), warped.size());
 
     cv::imwrite("./diffjust/" + meter_type_s + "/transformed/pic" + std::to_string(it) + (unsharp ? "unsharp" : "") + ".png", warped);
 
-    /*warped = warped - temp;
-        cv::imshow("warped", warped);
-        cv::imwrite("./diffjust/" + meter_type_s + "/diff_min/pic" + std::to_string(it) + (unsharp ? "unsharp" : "") + ".png", warped);
-*/
     ////////////////////////////////////////AdaptiveIntegralThresholding
 
-    /*        if (meter_type_s == "V") {
-            temp = cv::imread("../pictures/meter_template/temp" + meter_type_s + "_nocenter.png", 1);
-            cv::imshow("no", temp);
-            cv::waitKey();
-        }
-        */
     cv::Mat gray_temp;
-    cv::cvtColor(temp, gray_temp, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(Temp.img, gray_temp, cv::COLOR_BGR2GRAY);
     cv::Mat bwt = cv::Mat::zeros(gray_temp.size(), CV_8UC1);
     Adaptive::thresholdIntegral(gray_temp, bwt);
     cv::dilate(bwt, bwt, cv::Mat(), cv::Point(-1, -1), 1);
@@ -309,6 +267,9 @@ int message(int argc, char** argv)
     record = std::stoi(tmp);
     std::cout << "record? :" << (record ? "Yes" : "No") << std::endl;
 
+
+    std::cout << std::endl
+              << "/////////////////////////////" << std::endl;
 
     return 0;
 }

@@ -31,6 +31,7 @@ int judge(cv::Mat img, int num, int flag)
 {
 }
 
+//struct 作る
 std::pair<double, cv::Mat> pointerDetection(cv::Mat src, cv::Mat origin)
 {
     cv::imwrite("src.png", src);
@@ -159,14 +160,10 @@ std::pair<double, cv::Mat> pointerDetection(cv::Mat src, cv::Mat origin)
     //可読性xなら0を返す
     ////estimation of readability
     int line_center = y(center.x);
-    int readable_thre = 30;
+    int readable_thre = 20;
     if (std::abs(center.y - line_center) > readable_thre) {
-        value = 0;
         std::cout << "Not Readable!!" << std::endl;
-    }
-
-
-    if (value) {
+    } else {
         std::cout << "Readable!!" << std::endl;
     }
 
@@ -174,43 +171,4 @@ std::pair<double, cv::Mat> pointerDetection(cv::Mat src, cv::Mat origin)
     return {value, ret};
 }
 
-//src: 差分とって，erode,dilateした後の画像を入力
-double read(cv::Mat src)
-{
-    cv::Mat gray;
-    //グレースケール化
-    cv::cvtColor(src, gray, CV_BGR2GRAY);
-
-    //cv::dilate(gray, gray, cv::Mat(), cv::Point(-1, -1), 1);
-
-    cv::imshow("grayscale", gray);
-
-    cv::Mat bin;
-    double thresh = 70;
-    double maxval = 255;
-    int type = cv::THRESH_BINARY;
-    cv::threshold(gray, bin, thresh, maxval, type);
-
-
-    int iter = 10;
-    cv::dilate(bin, bin, cv::Mat(), cv::Point(-1, -1), iter);
-    cv::erode(bin, bin, cv::Mat(), cv::Point(-1, -1), iter);
-
-
-    //細線化
-    cv::ximgproc::thinning(bin, bin, cv::ximgproc::WMF_EXP);
-
-    cv::imshow("thinning", bin);
-    cv::imwrite("./thinning/" + std::to_string(it) + (type ? "pointer" : "normal") + ".png", bin);
-
-    cv::Rect roi(cv::Point(220, 220), cv::Size(280, 280));
-    cv::Mat pointerImage = bin(roi);  // 切り出し画像
-
-    //TODO:Hough Transform
-    //PCAにしたい
-    std::pair<double, cv::Mat> a;
-    //= pointerDetection(pointerImage);
-
-    return a.first;
-}
 }  // namespace Readability
