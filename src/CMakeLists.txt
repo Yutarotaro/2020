@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.1)
 project(MyOpenCVProject)
-SET( CMAKE_CXX_COMPILER /usr/bin/clang++ )
+#SET( CMAKE_CXX_COMPILER /usr/bin/clang++ )
+SET( CMAKE_CXX_COMPILER /usr/bin/g++ )
 set(CMAKE_CXX_FLAG "${CMAKE_C_FLAGS} -g -O0 -fmax-errors=5 -Wfatal-erros -std=c++17")
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
