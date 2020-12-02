@@ -2,7 +2,6 @@
 #include "modules/pos/calib.hpp"
 #include "modules/pos/homography.hpp"
 #include "modules/read/difference.hpp"
-#include "modules/read/template.hpp"
 #include "opencv2/highgui.hpp"
 #include "opencv2/xfeatures2d.hpp"
 #include "params/pose_params.hpp"
@@ -47,7 +46,8 @@ int main(int argc, char** argv)
 
 
     //Base_clockの特徴点を保存
-    Init::Feature Base(Base_clock);
+    //    Init::Feature Base(Base_clock);
+    Init::Feature Base("../pictures/meter_template/Base_clockdia_V.png");
 
 
     Module::pose p;
@@ -129,11 +129,11 @@ int main(int argc, char** argv)
 
 #endif
         //2 steps homography estimation
-        cv::Mat H = Module::getHomography(Base.keypoints, Base.descriptors, Base_clock, Now_clock);
+        cv::Mat H = Module::getHomography(Base.keypoints, Base.descriptors, Base.img, Now_clock);
         cv::Mat warped = cv::Mat::zeros(Now_clock.rows, Now_clock.cols, CV_8UC3);
         cv::warpPerspective(Now_clock, warped, H.inv(), warped.size());
 
-        cv::Mat H2 = Module::getHomography(Base.keypoints, Base.descriptors, Base_clock, warped);
+        cv::Mat H2 = Module::getHomography(Base.keypoints, Base.descriptors, Base.img, warped);
 
 
         Module::pose r = Module::decomposeHomography(H * H2, camera.A);

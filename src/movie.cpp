@@ -7,7 +7,6 @@
 #include "pos/homography.hpp"
 #include "read/difference.hpp"
 #include "read/readability.hpp"
-#include "read/template.hpp"
 #include <fstream>
 #include <iostream>
 #include <opencv2/imgproc.hpp>

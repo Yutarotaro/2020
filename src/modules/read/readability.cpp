@@ -32,7 +32,7 @@ int judge(cv::Mat img, int num, int flag)
 }
 
 //struct 作る
-std::pair<double, cv::Mat> pointerDetection(cv::Mat src, cv::Mat origin)
+result pointerDetection(cv::Mat src, cv::Mat origin)
 {
     cv::imwrite("src.png", src);
     cv::Mat ret;
@@ -98,9 +98,17 @@ std::pair<double, cv::Mat> pointerDetection(cv::Mat src, cv::Mat origin)
     int conti_thre = 20;
     int conti_count = 0;
 
+    int num_tl = 0;
+    int num_br = 0;
+
     for (int i = 0; i < src.cols; ++i) {
         if (y(i) >= 0 && y(i) <= src.rows) {
             if (origin.at<unsigned char>(cvRound(y(i)), i)) {
+                if (i < src.cols / 2) {
+                    num_tl++;
+                } else {
+                    num_br++;
+                }
                 conti_count++;
                 points_on_line.push_back(cv::Point(i, cvRound(y(i))));
             } else {
@@ -139,8 +147,11 @@ std::pair<double, cv::Mat> pointerDetection(cv::Mat src, cv::Mat origin)
     //row と col 自信ない
     cv::Point center = cv::Point(origin.rows / 2, origin.cols / 2);
 
-    //中心からより離れている方が先端
-    cv::Point tip = (std::abs(conti_tl.x - center.x) > std::abs(conti_br.x - center.x) ? conti_tl : conti_br);
+    //中心からより離れている方が先端←やめた
+    //cv::Point tip = (std::abs(conti_tl.x - center.x) > std::abs(conti_br.x - center.x) ? conti_tl : conti_br);
+    //左右で白の個数が多い方
+    cv::Point tip = (num_tl > num_br ? conti_tl : conti_br);
+    std::cout << "num_tl: " << num_tl << "num_br: " << num_br << std::endl;
 
     if (tip.x < center.x) {
         //第2,3象限ならば，piだけ引く
@@ -161,14 +172,15 @@ std::pair<double, cv::Mat> pointerDetection(cv::Mat src, cv::Mat origin)
     ////estimation of readability
     int line_center = y(center.x);
     int readable_thre = 20;
+    int readability = 0;
     if (std::abs(center.y - line_center) > readable_thre) {
         std::cout << "Not Readable!!" << std::endl;
     } else {
+        readability = 1;
         std::cout << "Readable!!" << std::endl;
     }
 
-
-    return {value, ret};
+    return {value, readability, ret};
 }
 
 }  // namespace Readability

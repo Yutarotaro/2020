@@ -6,8 +6,6 @@
 #include "pos/homography.hpp"
 #include "read/difference.hpp"
 #include "read/readability.hpp"
-#include "read/template.hpp"
-#include "sub/fit.hpp"
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>

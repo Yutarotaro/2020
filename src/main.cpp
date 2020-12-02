@@ -1,17 +1,4 @@
-#include "Eigen/Dense"
-#include "common/init.hpp"
-#include "external/AdaptiveIntegralThresholding/thresh.hpp"
-#include "external/cmdline/cmdline.h"
-#include "params/pose_params.hpp"
-#include "pos/calib.hpp"
-#include "pos/homography.hpp"
-#include "read/difference.hpp"
-#include "read/readability.hpp"
-#include "read/template.hpp"
-#include <fstream>
-#include <iostream>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/ximgproc.hpp>
+#include "include.hpp"
 
 Camera_pose camera;
 
@@ -198,7 +185,6 @@ int main(int argc, char** argv)
 
     cv::Mat dif;  //meter領域のみ残した差分画像
     diff.copyTo(dif, mask_for_dif);
-    //diff.copyTo(dif);
     ///////////////////
     cv::imshow("dif", dif);
     //cv::waitKey();
@@ -224,17 +210,16 @@ int main(int argc, char** argv)
     cv::ximgproc::thinning(dif, thinned_dif, cv::ximgproc::WMF_EXP);
 
 
-    std::pair<double, cv::Mat> aa;
-    aa.first = 0.;
-    aa = Readability::pointerDetection(thinned_dif, dif);
+    //    コンストラクタ じゃなくて，class内関数でいい
+    Readability::result Result = Readability::pointerDetection(thinned_dif, dif);
 
     if (record) {
-        ofs << it << ',' << aa.first << ',' << (aa.first ? 1 : 0) << ',' << std::endl;
+        ofs << it << ',' << Result.value << ',' << Result.readability << ',' << std::endl;
     }
 
 
-    std::cout << aa.first << std::endl;
-    cv::imwrite("./diffjust/" + meter_type_s + "/reading/" + std::to_string(it) + "min.png", aa.second);
+    std::cout << Result.value << std::endl;
+    cv::imwrite("./diffjust/" + meter_type_s + "/reading/" + std::to_string(it) + "min.png", Result.img);
 
     //    cv::waitKey();
 
