@@ -1,12 +1,10 @@
 #include "../common/init.hpp"
 #include "../pos/homography.hpp"
 #include "readability.hpp"
-#include <leptonica/allheaders.h>
 #include <opencv2/dnn.hpp>
 #include <opencv2/dnn/layer.details.hpp>
 #include <opencv2/opencv.hpp>
 #include <opencv2/ximgproc.hpp>
-#include <tesseract/baseapi.h>
 #include <utility>
 #include <vector>
 

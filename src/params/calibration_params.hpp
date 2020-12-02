@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Param::Calibration
+namespace Calibration
 {
 
 /*
@@ -27,4 +27,4 @@ inline double offset = 410.;  //ワールド座標系xy平面からメータ平�
 #define CHESS_SIZE (38.8) /* パターン1マスの1辺サイズ[mm] */
 
 
-}  // namespace Param::Calibration
+}  // namespace Calibration
