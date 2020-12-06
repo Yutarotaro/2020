@@ -73,10 +73,8 @@ result pointerDetection(cv::Mat src, cv::Mat origin)
         pt2.y = cvRound(y0 - 1000 * (a));
         cv::line(ret, pt1, pt2, cv::Scalar(0, 0, 255), 2, cv::LINE_AA);
         rad = lines[index][1];
-
-        std::cout << "pt1.x: " << pt1.x << "pt1.y: " << pt1.y << "pt2.x: " << pt2.x << "pt2.y: " << pt2.y << std::endl;
     }
-    cv::imwrite("hough.png", ret);
+    cv::imwrite("ret.png", ret);
 
     //TODO:針の向き判定
     //line上の点群の重心が上下左右どちらにあるかで場合わけ
@@ -122,7 +120,7 @@ result pointerDetection(cv::Mat src, cv::Mat origin)
                     }
 
                     for (int j = i - conti_count; j <= i; ++j) {
-                        cv::circle(bgr_origin, cv::Point(j, cvRound(y(j))), 3, cv::Scalar(255, 0, 0), -1, cv::LINE_AA);
+                        cv::circle(bgr_origin, cv::Point(j, cvRound(y(j))), 2, cv::Scalar(71, 173, 112), -1, cv::LINE_AA);
                     }
                 }
                 conti_count = 0;
@@ -130,11 +128,9 @@ result pointerDetection(cv::Mat src, cv::Mat origin)
         }
     }
 
-    cv::circle(bgr_origin, conti_tl, 3, cv::Scalar(0, 0, 255), -1, cv::LINE_AA);
-    cv::circle(bgr_origin, conti_br, 3, cv::Scalar(0, 0, 255), -1, cv::LINE_AA);
+    //  cv::circle(bgr_origin, conti_tl, 3, cv::Scalar(255, 0, 255), -1, cv::LINE_AA);
+    //  cv::circle(bgr_origin, conti_br, 3, cv::Scalar(255, 0, 255), -1, cv::LINE_AA);
 
-    cv::imshow("origin", bgr_origin);
-    cv::imwrite("bgr.png", bgr_origin);
     //cv::waitKey();
 
 
@@ -150,6 +146,11 @@ result pointerDetection(cv::Mat src, cv::Mat origin)
     //左右で白の個数が多い方
     cv::Point tip = (num_tl > num_br ? conti_tl : conti_br);
     std::cout << "num_tl: " << num_tl << "num_br: " << num_br << std::endl;
+    cv::circle(bgr_origin, conti_br, 4, cv::Scalar(160, 48, 112), -1, cv::LINE_AA);
+    cv::circle(bgr_origin, conti_tl, 4, cv::Scalar(160, 48, 112), -1, cv::LINE_AA);
+    cv::circle(bgr_origin, tip, 4, cv::Scalar(0, 0, 255), -1, cv::LINE_AA);
+
+    cv::imwrite("bgr.png", bgr_origin);
 
     if (tip.x < center.x) {
         //第2,3象限ならば，piだけ引く
@@ -169,16 +170,24 @@ result pointerDetection(cv::Mat src, cv::Mat origin)
     //可読性xなら0を返す
     ////estimation of readability
     int line_center = y(center.x);
-    int readable_thre = 20;
+    int readable_thre = 25;
     int readability = 0;
-    if (std::abs(center.y - line_center) > readable_thre) {
+
+
+    auto dist = [=]() -> double {
+        //    return std::abs(center.y - slope * center.x - pt1.y) / (double)std::sqrt((1 + slope * slope));
+        return (lines.size() ? std::abs(line_center - center.y) / (double)std::sqrt(1 + slope * slope) : 100.);
+    };
+
+    std::cout << "dist: " << dist() << std::endl;
+    if (dist() > readable_thre) {
         std::cout << "Not Readable!!" << std::endl;
     } else {
         readability = 1;
         std::cout << "Readable!!" << std::endl;
     }
 
-    return {value, readability, ret};
+    return {value, readability, bgr_origin};
 }
 
 }  // namespace Readability
