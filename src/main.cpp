@@ -182,6 +182,9 @@ int main(int argc, char** argv)
     cv::imshow("bwi", bwi);
     cv::imshow("bwt", bwt);
 
+    cv::imwrite("bwi.png", bwi);
+    cv::imwrite("bwt.png", bwt);
+
 
     //cv::Mat diff_tmp = bwi - bwt;
     cv::Mat diff_tmp;
@@ -197,6 +200,7 @@ int main(int argc, char** argv)
     cv::imshow("dfe", diff_tmp);
     //diff_tmp.copyTo(diff, mask_img);
     //cv::bitwise_and(diff_tmp, mask_img, diff);
+    //for light filter
     mask_img = ~mask_img;
     diff = diff_tmp - mask_img;
     //diff = diff_tmp;
@@ -235,8 +239,10 @@ int main(int argc, char** argv)
     Readability::result Result = {0, 0, cv::Mat()};
     Result = Readability::pointerDetection(thinned_dif, dif);
 
+    int white_num = cv::countNonZero(dif);
+
     if (record) {
-        ofs << it << ',' << Result.value << ',' << Result.readability << ',' << std::endl;
+        ofs << it << ',' << Result.value << ',' << Result.readability << ',' << white_num << ',' << std::endl;
     }
 
 

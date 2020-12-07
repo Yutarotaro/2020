@@ -128,11 +128,6 @@ result pointerDetection(cv::Mat src, cv::Mat origin)
         }
     }
 
-    //  cv::circle(bgr_origin, conti_tl, 3, cv::Scalar(255, 0, 255), -1, cv::LINE_AA);
-    //  cv::circle(bgr_origin, conti_br, 3, cv::Scalar(255, 0, 255), -1, cv::LINE_AA);
-
-    //cv::waitKey();
-
 
     //    std::cout << "画像の大きさ: " << origin.rows << ' ' << origin.cols << std::endl;
     std::cout << "tl: " << conti_tl << " br: " << conti_br << std::endl;
