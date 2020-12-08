@@ -56,24 +56,25 @@ result pointerDetection(cv::Mat src, cv::Mat origin)
     if (lines.size()) {
         for (size_t i = 0; i < lines.size(); ++i) {
             //投票数が一番多い直線を選ぶ
-            if (lines[i][2] > tmp /*&& std::abs(lines[i][1] - CV_PI / 2.) > eps*/) {
+            if (lines[i][1] && lines[i][0] && lines[i][2] > tmp /*&& std::abs(lines[i][1] - CV_PI / 2.) > eps*/) {
                 index = i;
                 tmp = lines[i][2];
             }
         }
 
         float rho = lines[index][0], theta = lines[index][1];
-        std::cout << index << "-th " << lines[index][2] << " votes" << std::endl
-                  << lines[index][1] << " [rad]" << std::endl;
         double a = std::cos(theta), b = std::sin(theta);
         double x0 = a * rho, y0 = b * rho;
         pt1.x = cvRound(x0 + 1000 * (-b));
         pt1.y = cvRound(y0 + 1000 * (a));
         pt2.x = cvRound(x0 - 1000 * (-b));
         pt2.y = cvRound(y0 - 1000 * (a));
+
+
         cv::line(ret, pt1, pt2, cv::Scalar(0, 0, 255), 2, cv::LINE_AA);
         rad = lines[index][1];
     }
+
     cv::imwrite("ret.png", ret);
 
     //TODO:針の向き判定
@@ -170,12 +171,16 @@ result pointerDetection(cv::Mat src, cv::Mat origin)
 
 
     auto dist = [=]() -> double {
-        //    return std::abs(center.y - slope * center.x - pt1.y) / (double)std::sqrt((1 + slope * slope));
         return (lines.size() ? std::abs(line_center - center.y) / (double)std::sqrt(1 + slope * slope) : 100.);
     };
 
     std::cout << "dist: " << dist() << std::endl;
-    if (dist() > readable_thre) {
+
+    int white_thre_max = 60000;
+    int white_thre_min = 13000;
+
+    int white_num = cv::countNonZero(origin);
+    if (dist() > readable_thre || white_num < white_thre_min || white_num > white_thre_max) {
         std::cout << "Not Readable!!" << std::endl;
     } else {
         readability = 1;
