@@ -201,9 +201,9 @@ int main(int argc, char** argv)
     //diff_tmp.copyTo(diff, mask_img);
     //cv::bitwise_and(diff_tmp, mask_img, diff);
     //for light filter
-    mask_img = ~mask_img;
-    diff = diff_tmp - mask_img;
-    //diff = diff_tmp;
+    // mask_img = ~mask_img;
+    //diff = diff_tmp - mask_img;
+    diff = diff_tmp;
 
 
     int d = 90;
