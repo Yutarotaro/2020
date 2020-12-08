@@ -1,32 +1,12 @@
 //ref: https://qiita.com/kazz4423/items/f173f298704bd121043d
 
-#include "opencv2/calib3d/calib3d.hpp"
-#include "opencv2/core.hpp"
-#include "opencv2/features2d.hpp"
-#include "opencv2/highgui.hpp"
-#include "opencv2/imgcodecs.hpp"
-#include "opencv2/xfeatures2d.hpp"
-#include <cstdlib>
-#include <fstream>
-#include <iomanip>
+#include "params/calibration_params.hpp"
 #include <iostream>
 #include <opencv2/opencv.hpp>
-#include <sstream>
-#include <string>
-#include <vector>
 
 #define filepath "/Users/yutaro/research/2020/src"
 
 using namespace std;
-
-//#define IMAGE_NUM (19) /* 画像数 */
-#define IMAGE_NUM (13) /* 画像数 */
-#define PAT_ROW (7)    /* パターンの行数 */
-#define PAT_COL (10)   /* パターンの列数 */
-#define PAT_SIZE (PAT_ROW * PAT_COL)
-#define ALL_POINTS (IMAGE_NUM * PAT_SIZE)
-//#define CHESS_SIZE (270. * 1.6 / 23.8) /* パターン1マスの1辺サイズ[mm] */
-#define CHESS_SIZE (24) /* パターン1マスの1辺サイズ[mm] */
 
 int main(int argc, char* argv[])
 {
@@ -44,7 +24,8 @@ int main(int argc, char* argv[])
         ostringstream ostr;
         //チェスボード写真のpath
         //       ostr << filepath << "/pictures/calib_img/calib" << i << ".png";
-        ostr << filepath << "/pictures/meter_experiment/calib/pic" << i << ".JPG";
+        ostr << filepath << "/pictures/dia_experiment_V/calib/pic" << i << ".JPG";
+        //ostr << filepath << "/pictures/meter_experiment/calib/pic" << i << ".JPG";
         //        ostr << filepath << "/pictures/calib/pic" << i << ".JPG";
         cv::Mat src = cv::imread(ostr.str(), 1);
         if (src.empty()) {
@@ -54,6 +35,7 @@ int main(int argc, char* argv[])
             srcImages.push_back(src);
         }
     }
+
 
     // (2)3次元空間座標の設定
 
@@ -96,7 +78,7 @@ int main(int argc, char* argv[])
         img_points.push_back(corners);
 
         cv::imshow("Calibration", srcImages[i]);
-        //        cv::waitKey(1);
+        //        cv::waitKey(1000);
     }
     cv::destroyWindow("Calibration");
 
@@ -119,7 +101,9 @@ int main(int argc, char* argv[])
         tvecs);
 
     cv::Mat R_tmp;
-    for (int i = IMAGE_NUM - 1; i < IMAGE_NUM; i++) {
+    //後ろから2枚
+    for (int i = IMAGE_NUM - 2; i < IMAGE_NUM; i++) {
+        std::cout << i << "-th image position" << std::endl;
         cv::Rodrigues(rvecs[i], R_tmp);
         std::cout << R_tmp.inv() * (-tvecs[i]) << std::endl
                   << std::endl;
@@ -134,11 +118,12 @@ int main(int argc, char* argv[])
 
     cv::Mat t = R_tmp.inv() * (-tvecs[IMAGE_NUM - 1]);
 
-    double offset = 72.;  //ワールド座標系xy平面からメータ平面までの距離
-    t.at<double>(0, 2) -= offset;
+    t.at<double>(0, 2) -= Param::Calibration::offset;
 
     fs << "intrinsic" << cam_mat;
     fs << "distortion" << dist_coefs;
+
+    //最後の画像の外部パラメータ　いる？
     fs << "R" << R_tmp;
     fs << "t" << t;
     fs.release();

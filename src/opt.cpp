@@ -1,7 +1,6 @@
 #include "AdaptiveIntegralThresholding/thresh.hpp"
 #include "Eigen/Dense"
 #include "common/init.hpp"
-#include "params/pose_params.hpp"
 #include "pos/calib.hpp"
 #include "pos/fromtwo.hpp"
 #include "pos/module.hpp"
@@ -18,7 +17,12 @@
 #include <string>
 #include <vector>
 
-Camera_pose camera;
+
+cv::Mat A;  //カメラ行列
+cv::Mat distCoeffs;
+cv::Mat R;    //基準姿勢
+cv::Mat pos;  //基準位置
+cv::Mat t;    //camにおけるpos
 
 cv::Mat temp;
 
@@ -64,6 +68,7 @@ public:
     double k;            //1[deg]に対する変化率
 };
 */
+
 //一番マシなメータまでの距離
 double z = 449.35;
 
@@ -76,11 +81,11 @@ std::map<std::string, int> mp;
 
 int ite = 3;
 
-double image_size = 1920.;
 
 int main(int argc, char** argv)
 {
     //入力が正しいか確認
+
     if (message(argc, argv)) {
         std::cout << "unexpected inputs" << std::endl;
         return -1;
@@ -94,12 +99,12 @@ int main(int argc, char** argv)
     cv::Mat Base_clock = cv::imread("../pictures/meter_template/Base_clock" + meter_type_s + ".png", 1);
     temp = cv::imread("../pictures/meter_template/temp" + meter_type_s + ".png", 1);
 
-    image_size = Base_clock.cols;
-
+    //   cv::Mat hsv;
+    //  cv::cvtColor(temp, hsv, cv::COLOR_BGR2HSV);
+    //    cv::imshow("hsv", hsv);
 
     ///////////////////////////////
 
-    //    cv::resize(Base_clock, Base_clock, cv::Size(), image_size / Base_clock.cols, image_size / Base_clock.cols);
 
     //基準画像の特徴点を事前に検出しておく
     cv::Ptr<cv::Feature2D> feature;
@@ -114,11 +119,6 @@ int main(int argc, char** argv)
         ofs.open("./diffjust/" + meter_type_s + "/reading/reading" + t + ".csv");
     }
 
-    ///////
-    //common/init.cppでやってるはず
-    //pos.at<double>(0, 2) = z;
-    //t = R * pos;
-    ///////
 
     int st = (argc > 4 ? std::stoi(argv[4]) : 0);
     int en = (argc > 5 ? std::stoi(argv[5]) : params[meter_type].total);
@@ -126,10 +126,10 @@ int main(int argc, char** argv)
 
     //itt 回数
     //it  画像のindex
-    for (int itt = st; itt < en; ++itt) {
-        //    for (int itt = 0; itt < 3; ++itt) {
-        it = itt;
-        //    it = lis[itt];
+    // for (int itt = st; itt < en; ++itt) {
+    for (int itt = 0; itt < 3; ++itt) {
+        //   it = itt;
+        it = lis[itt];
 
         ////for more accurate Homography
         featurePoint2.clear();          //特徴点ベクトルの初期化
@@ -140,21 +140,48 @@ int main(int argc, char** argv)
                   << "/////////////////////////////" << std::endl
                   << "picture " << it << std::endl;
         std::string path = "../pictures/" + params[meter_type].picdir + "/pic" + std::to_string(it) + ".JPG";
-        //std::string path = "../pictures/" + params[meter_type].picdir + "/mask/pic" + std::to_string(it) + ".png";
-
 
         cv::Mat Now_clock_o = cv::imread(path, 1);  //for matching
 
         cv::Mat Now_clock;
 
-        Now_clock_o.copyTo(Now_clock);
 
-        cv::resize(Now_clock, Now_clock, cv::Size(), image_size / Now_clock.cols, image_size / Now_clock.cols);
+        //////////for masking
+        if (true) {
+            /*            cv::FileStorage fs(ostr.str(), cv::FileStorage::READ);
+            if (!fs.isOpened()) {
+                std::cerr << "File can not be opened." << std::endl;
+            }
+            cv::Mat pa = cv::zeros(3, 1, int);
+
+            fs["17"] >> pa;
+            */
+
+
+            cv::Point topleft[] = {cv::Point(1911, 1325), cv::Point(1940, 1197), cv::Point(2101, 1156), cv::Point(2234, 1257)};
+            cv::Point bottomright[] = {cv::Point(2276, 1710), cv::Size(2220, 1597), cv::Size(2521, 1556), cv::Size(2394, 1857)};
+
+            cv::Mat mask_pa = cv::Mat::zeros(Now_clock_o.rows, Now_clock_o.cols, CV_8UC1);
+            cv::rectangle(mask_pa, topleft[itt], bottomright[itt], cv::Scalar(255), -1, CV_AA);
+            Now_clock_o.copyTo(Now_clock, mask_pa);
+
+            cv::Rect roi(cv::Point(topleft[itt]), cv::Size(bottomright[itt] - topleft[itt]));
+            cv::Mat img = Now_clock_o(roi);
+            cv::imwrite("../pictures/meter_experiment_V/roi" + std::to_string(it) + ".png", img);
+
+
+            cv::imshow("masked", Now_clock);
+            cv::waitKey();
+
+        } else {
+            Now_clock_o.copyTo(Now_clock);
+        }
+
+        continue;
 
 
         //Homography: Template to Test
         H = Module::getHomography(Base_clock, Now_clock);
-        cv::waitKey();
         /////////////////////////////////////////////////////
 
 
@@ -210,7 +237,6 @@ int main(int argc, char** argv)
             continue;
         }
 
-        ////////////////////////////////////////AdaptiveIntegralThresholding
 
         cv::Mat gray_right;
         cv::cvtColor(right_modified, gray_right, cv::COLOR_BGR2GRAY);
@@ -218,13 +244,12 @@ int main(int argc, char** argv)
         Adaptive::thresholdIntegral(gray_right, bwr);
         cv::erode(bwr, bwr, cv::Mat(), cv::Point(-1, -1), 1);
 
+
         cv::Mat gray_tempm;
         cv::cvtColor(temp, gray_tempm, cv::COLOR_BGR2GRAY);
         cv::Mat bwt = cv::Mat::zeros(gray_tempm.size(), CV_8UC1);
         Adaptive::thresholdIntegral(gray_tempm, bwt);
         cv::dilate(bwt, bwt, cv::Mat(), cv::Point(-1, -1), 1);
-        ////////////////////////////////////////
-
 
         cv::Mat diff;
         //cv::absdiff(right, temp_modified, diff);
@@ -361,21 +386,21 @@ int message(int argc, char** argv)
     mp["T"] = 0;
     mp["V"] = 1;
 
-    if (argc < 4 || argc > 7) {
-        return -1;
-    }
 
-    meter_type_s = argv[1];
+    //meter_type_s = argv[1];
+    meter_type_s = "V";
     std::cout << "type of analog meter:" << (meter_type_s == "T" ? "ThermoMeter" : "Vacuum") << std::endl;
     meter_type = mp[meter_type_s];
 
 
-    std::string tmp = argv[2];
+    //std::string tmp = argv[2];
+    std::string tmp = "0";
     type = std::stoi(tmp);
     std::cout << "type of homography: " << type << std::endl;
 
 
-    tmp = argv[3];
+    //tmp = argv[3];
+    tmp = "0";
     record = std::stoi(tmp);
     std::cout << "record? :" << (record ? "Yes" : "No") << std::endl;
 

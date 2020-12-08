@@ -1,0 +1,13 @@
+#include "Eigen/Dense"
+#include "common/init.hpp"
+#include "external/AdaptiveIntegralThresholding/thresh.hpp"
+#include "external/cmdline/cmdline.h"
+#include "params/pose_params.hpp"
+#include "pos/calib.hpp"
+#include "pos/homography.hpp"
+#include "read/difference.hpp"
+#include "read/readability.hpp"
+#include <fstream>
+#include <iostream>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/ximgproc.hpp>

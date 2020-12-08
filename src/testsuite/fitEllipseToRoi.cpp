@@ -3,12 +3,10 @@
 #include "common/init.hpp"
 #include "params/pose_params.hpp"
 #include "pos/calib.hpp"
-#include "pos/fromtwo.hpp"
 #include "pos/module.hpp"
 #include "read/difference.hpp"
 #include "read/readability.hpp"
 #include "read/template.hpp"
-#include "sub/fit.hpp"
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
@@ -18,7 +16,9 @@
 #include <string>
 #include <vector>
 
+
 Camera_pose camera;
+
 
 cv::Mat temp;
 
@@ -50,7 +50,8 @@ int record;
 int message(int argc, char** argv);
 
 int opt_list[] = {5, 40, 45, 63, 89, 97, 104, 106};
-int lis[] = {10, 11, 12, 17};
+//int lis[] = {10, 11, 12, 17};
+int lis[] = {41};
 /*class Params
 {
 public:
@@ -64,6 +65,7 @@ public:
     double k;            //1[deg]に対する変化率
 };
 */
+
 //一番マシなメータまでの距離
 double z = 449.35;
 
@@ -76,11 +78,11 @@ std::map<std::string, int> mp;
 
 int ite = 3;
 
-double image_size = 1920.;
 
 int main(int argc, char** argv)
 {
     //入力が正しいか確認
+
     if (message(argc, argv)) {
         std::cout << "unexpected inputs" << std::endl;
         return -1;
@@ -93,43 +95,32 @@ int main(int argc, char** argv)
 
     cv::Mat Base_clock = cv::imread("../pictures/meter_template/Base_clock" + meter_type_s + ".png", 1);
     temp = cv::imread("../pictures/meter_template/temp" + meter_type_s + ".png", 1);
+    //    temp = cv::imread("4.png", 1);
 
-    image_size = Base_clock.cols;
-
+    //   cv::Mat hsv;
+    //  cv::cvtColor(temp, hsv, cv::COLOR_BGR2HSV);
+    //    cv::imshow("hsv", hsv);
 
     ///////////////////////////////
 
-    //    cv::resize(Base_clock, Base_clock, cv::Size(), image_size / Base_clock.cols, image_size / Base_clock.cols);
 
     //基準画像の特徴点を事前に検出しておく
     cv::Ptr<cv::Feature2D> feature;
     feature = cv::AKAZE::create();
-    feature->detectAndCompute(Base_clock, cv::Mat(), keypoints1, descriptors1);
+    //feature->detectAndCompute(Base_clock, cv::Mat(), keypoints1, descriptors1);
+    feature->detectAndCompute(temp, cv::Mat(), keypoints1, descriptors1);
 
 
     //読み取り結果を記録
-    std::ofstream ofs;
-    if (record) {
-        std::string t = (type ? "pointer" : "normal");
-        ofs.open("./diffjust/" + meter_type_s + "/reading/reading" + t + ".csv");
-    }
-
-    ///////
-    //common/init.cppでやってるはず
-    //pos.at<double>(0, 2) = z;
-    //t = R * pos;
-    ///////
-
-    int st = (argc > 4 ? std::stoi(argv[4]) : 0);
-    int en = (argc > 5 ? std::stoi(argv[5]) : params[meter_type].total);
 
 
     //itt 回数
     //it  画像のindex
-    for (int itt = st; itt < en; ++itt) {
-        //    for (int itt = 0; itt < 3; ++itt) {
-        it = itt;
-        //    it = lis[itt];
+    // for (int itt = st; itt < en; ++itt) {
+    for (int itt = 0; itt < 1; ++itt) {
+        //   it = itt;
+        //        it = lis[itt];
+        it = std::stoi(argv[1]);
 
         ////for more accurate Homography
         featurePoint2.clear();          //特徴点ベクトルの初期化
@@ -140,8 +131,6 @@ int main(int argc, char** argv)
                   << "/////////////////////////////" << std::endl
                   << "picture " << it << std::endl;
         std::string path = "../pictures/" + params[meter_type].picdir + "/pic" + std::to_string(it) + ".JPG";
-        //std::string path = "../pictures/" + params[meter_type].picdir + "/mask/pic" + std::to_string(it) + ".png";
-
 
         cv::Mat Now_clock_o = cv::imread(path, 1);  //for matching
 
@@ -149,12 +138,97 @@ int main(int argc, char** argv)
 
         Now_clock_o.copyTo(Now_clock);
 
-        cv::resize(Now_clock, Now_clock, cv::Size(), image_size / Now_clock.cols, image_size / Now_clock.cols);
+
+        //cv::Mat init = cv::imread("../pictures/meter_experiment_V/roi/pic" + std::to_string(it) + ".png", 1);
+        //object detection で 切り取られたメータ領域の画像
+        cv::Mat init = cv::imread("../pictures/meter_experiment_V/roi/pic" + std::string(argv[1]) + ".png", 1);
+
+        try {
+            cv::imshow("init", init);
+        } catch (cv::Exception& e) {
+            continue;
+        }
+
+        //ここから楕円検出
+
+        cv::Mat gray;
+        cv::cvtColor(init, gray, CV_BGR2GRAY);
+
+        cv::imshow("edgeBefore", gray);
+        //白黒反転
+        gray = ~gray;
+
+        cv::Canny(gray, gray, 120, 255);
+        cv::imshow("edge", gray);
+
+
+        std::vector<std::vector<cv::Point>> contours;
+        std::vector<cv::Vec4i> hierarchy;
+
+        cv::findContours(gray,    // 入力画像，8ビット，シングルチャンネル．0以外のピクセルは 1 、0のピクセルは0として扱う。処理結果として image を書き換えることに注意する.
+            contours,             // 輪郭を点ベクトルとして取得する
+            hierarchy,            // hiararchy ? オプション．画像のトポロジーに関する情報を含む出力ベクトル．
+            CV_RETR_EXTERNAL,     // 輪郭抽出モード
+            CV_CHAIN_APPROX_NONE  // 輪郭の近似手法
+        );
+
+        std::cout << "number of contours" << contours.size() << std::endl;
+        for (int i = 0; i < contours.size(); i++) {
+            std::cout << contours[i].size() << std::endl;
+        }
+
+
+        for (int i = 0; i >= 0; i = hierarchy[i][0]) {
+            if (contours[i].size() > 5 /*00*/) {
+                // 2 次元の点集合にフィッティングする楕円を取得
+                cv::RotatedRect rc = cv::fitEllipseDirect(contours[i]);
+                // 楕円を描画
+                cv::ellipse(init, rc, cv::Scalar(0, 128, 0), 10 / 2, CV_AA);
+            }
+        }
+
+        cv::moveWindow("ellipse", 600, 0);
+        cv::imshow("ellipse", init);
+        cv::waitKey(5000);
+
+#if 0
+
+        std::ostringstream ostr;
+        ostr << "./minimum.xml";
+
+        //[ref] https://qiita.com/wakaba130/items/3ce8d8668d0a698c7e1b
+
+        cv::FileStorage fs(ostr.str(), cv::FileStorage::READ);
+        if (!fs.isOpened()) {
+            std::cerr << "File can not be opened." << std::endl;
+        }
+
+        //    fs["intrinsic"] >> cameraMatrix;
+        fs["H"] >> H;
+
+
+        //H = (cv::Mat_<double>(3, 3) << 1, 0.2, 0, 0, 1, 0, 0, 0, 1);
+
+        double rate = std::max((double)temp.cols / init.cols, (double)temp.rows / init.rows);
+
+        cv::resize(init, init, cv::Size(), rate, rate);
+        H = Module::getHomography(temp, init);
+
+
+        cv::Mat warped = cv::Mat::zeros(init.rows, init.cols, CV_8UC3);
+        cv::warpPerspective(init, warped, H.inv(), warped.size());
+        //cv::warpPerspective(temp, warped, H, warped.size());  //tempをinit視点へ
+        cv::imshow("warp", warped);
+        cv::imwrite("./diffjust/V/transformed/pic" + std::to_string(it) + ".png", warped);
+        warped = warped - init;
+        cv::imshow("warped", warped);
+        cv::waitKey(2);
+
+        //optimize Homography
 
 
         //Homography: Template to Test
         H = Module::getHomography(Base_clock, Now_clock);
-        cv::waitKey();
         /////////////////////////////////////////////////////
 
 
@@ -210,7 +284,6 @@ int main(int argc, char** argv)
             continue;
         }
 
-        ////////////////////////////////////////AdaptiveIntegralThresholding
 
         cv::Mat gray_right;
         cv::cvtColor(right_modified, gray_right, cv::COLOR_BGR2GRAY);
@@ -218,13 +291,12 @@ int main(int argc, char** argv)
         Adaptive::thresholdIntegral(gray_right, bwr);
         cv::erode(bwr, bwr, cv::Mat(), cv::Point(-1, -1), 1);
 
+
         cv::Mat gray_tempm;
         cv::cvtColor(temp, gray_tempm, cv::COLOR_BGR2GRAY);
         cv::Mat bwt = cv::Mat::zeros(gray_tempm.size(), CV_8UC1);
         Adaptive::thresholdIntegral(gray_tempm, bwt);
         cv::dilate(bwt, bwt, cv::Mat(), cv::Point(-1, -1), 1);
-        ////////////////////////////////////////
-
 
         cv::Mat diff;
         //cv::absdiff(right, temp_modified, diff);
@@ -351,6 +423,7 @@ int main(int argc, char** argv)
             cv::waitKey(2);
         }
         continue;
+#endif
     }
 
     return 0;
@@ -361,21 +434,21 @@ int message(int argc, char** argv)
     mp["T"] = 0;
     mp["V"] = 1;
 
-    if (argc < 4 || argc > 7) {
-        return -1;
-    }
 
-    meter_type_s = argv[1];
+    //meter_type_s = argv[1];
+    meter_type_s = "V";
     std::cout << "type of analog meter:" << (meter_type_s == "T" ? "ThermoMeter" : "Vacuum") << std::endl;
     meter_type = mp[meter_type_s];
 
 
-    std::string tmp = argv[2];
+    //std::string tmp = argv[2];
+    std::string tmp = "0";
     type = std::stoi(tmp);
     std::cout << "type of homography: " << type << std::endl;
 
 
-    tmp = argv[3];
+    //tmp = argv[3];
+    tmp = "0";
     record = std::stoi(tmp);
     std::cout << "record? :" << (record ? "Yes" : "No") << std::endl;
 

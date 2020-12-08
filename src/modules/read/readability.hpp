@@ -5,10 +5,15 @@
 
 namespace Readability
 {
-double judge(cv::Mat src, int num, int flag);
+struct result {
+    double value;
+    int readability;
+    cv::Mat img;
+};
+int judge(cv::Mat src, int num, int flag);
 std::pair<double, cv::Mat> edgeDetection(cv::Mat img);
-std::pair<double, cv::Mat> pointerDetection(cv::Mat src);
-double read(cv::Mat src);
+result pointerDetection(cv::Mat src, cv::Mat origin);
+
 }  // namespace Readability
 
 #endif

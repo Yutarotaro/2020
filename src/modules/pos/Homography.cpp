@@ -1,6 +1,7 @@
-#include "module.hpp"
+#include "homography.hpp"
 #include "opencv2/calib3d.hpp"
 #include "opencv2/features2d.hpp"
+#include "params/pose_params.hpp"
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <utility>
@@ -8,13 +9,12 @@
 using namespace cv;
 using namespace std;
 
+extern Camera_pose camera;
 
-extern int it;
-extern cv::Mat A;
-extern cv::Mat distCoeffs;
-extern cv::Mat R;
-extern cv::Mat pos;  //World
-extern cv::Mat t;    //Camera1
+extern std::string meter_type_s;
+
+extern int it;  //image index
+
 
 extern std::vector<cv::KeyPoint> keypoints1;
 extern cv::Mat descriptors1;
@@ -105,19 +105,19 @@ Mat getHomography(Mat Src1, Mat Src2)
     //imwrite("../output/match_inlier.jpg", drawMatch_inlier);
 
     imshow("DrawMatch_inlier", drawMatch_inlier);
-    imwrite("./diffjust/match/match_inlier_" + std::to_string(it) + ".png", drawMatch_inlier);
-#if 0
-    imshow("Inliner", drawMatch_inlier);
-    imwrite("./match_inliner.jpg", drawMatch_inlier);
-    cv::waitKey(0.1);
-#endif
+    imwrite("./diffjust/" + meter_type_s + "/match/match_inlier_" + std::to_string(it) + ".png", drawMatch_inlier);
+    //for masking
+    //imwrite("./diffjust/V/match/match_inlier_mask" + std::to_string(it) + ".png", drawMatch_inlier);
+
+    //    cv::waitKey();
+
+
     return H;
 }
 
 
 Mat getHomography(vector<KeyPoint> keypoints, Mat descriptors, Mat Src1, Mat Src2)
 {
-    std::cout << "ok dao zheli" << std::endl;
     vector<KeyPoint> keypoints2;
     Mat descriptors2;
 
@@ -133,7 +133,7 @@ Mat getHomography(vector<KeyPoint> keypoints, Mat descriptors, Mat Src1, Mat Src
     match.knnMatch(descriptors, descriptors2, knnmatch_points, 2);
 
     //対応点を絞る
-    const double match_par = 0.75;  //候補点を残す場合のしきい値originally 0.6
+    const double match_par = 0.70;  //候補点を残す場合のしきい値originally 0.6
     vector<cv::DMatch> goodMatch;
     //KeyPoint -> Point2d
     vector<cv::Point2f> match_point;
@@ -191,31 +191,33 @@ Mat getHomography(vector<KeyPoint> keypoints, Mat descriptors, Mat Src1, Mat Src
     cv::drawMatches(Src1, keypoints, Src2, keypoints2, inlierMatch, drawMatch_inlier);
     //imwrite("../output/match_inlier.jpg", drawMatch_inlier);
 
-    imshow("DrawMatch_inlier_detail", drawMatch_inlier);
+    //imshow("DrawMatch_inlier_detail", drawMatch_inlier);
     //imwrite("./output/match_inlier_detail" + std::to_string(it) + ".jpg", drawMatch_inlier);
-#if 0
-    imshow("Inliner", drawMatch_inlier);  
-    imwrite("./match_inliner.jpg", drawMatch_inlier);
-    cv::waitKey(0.1);
+#if 1
+    imshow("Inliner", drawMatch_inlier);
+    imwrite("./diffjust/" + meter_type_s + "/match/pose/match_inlier_" + std::to_string(it) + ".png", drawMatch_inlier);
+    //cv::waitKey(0);
 #endif
     return HP;
 }
 
+//decomposition of homography
 pose decomposeHomography(cv::Mat H, cv::Mat A)
 {
     //https://docs.opencv.org/master/de/d45/samples_2cpp_2tutorial_code_2features2D_2Homography_2decompose_homography_8cpp-example.html#a20
 
-    cv::Mat R1 = R;
+    cv::Mat R1 = camera.R;
     cv::Mat rvec1;
     cv::Rodrigues(R1, rvec1);
 
 
     //並進ベクトルの初期値
     //TODO:.xmlからの読み取り
-    cv::Mat tvec1 = t;  //tvec1はCamera coordinate
+    cv::Mat tvec1 = camera.t;  //tvec1はCamera coordinate
 
 
     //    cv::Mat normal = (cv::Mat_<double>(3, 1) << 0, 1, 0);
+    //    0, 0, -1 ではない本当は
     cv::Mat normal = (cv::Mat_<double>(3, 1) << 0, 0, -1);
     cv::Mat normal1 = R1 * normal;
 
@@ -228,7 +230,7 @@ pose decomposeHomography(cv::Mat H, cv::Mat A)
     std::vector<cv::Mat> Rs_decomp, ts_decomp, normals_decomp;
 
     //solutionsの個数が解の個数(それはそう)
-    int solutions = cv::decomposeHomographyMat(H, A, Rs_decomp, ts_decomp, normals_decomp);
+    int solutions = cv::decomposeHomographyMat(H, camera.A, Rs_decomp, ts_decomp, normals_decomp);
 
     //normals_decompが(0,0,1)に最も近いものを選択
 
@@ -268,7 +270,7 @@ pose decomposeHomography(cv::Mat H, cv::Mat A)
     cv::Rodrigues(Rs_decomp[index], rvec_decomp);
 
     cv::Mat rvec3, tvec3;
-    cv::composeRT(rvec1, t, rvec_decomp, ts_decomp[index] * factor_d1, rvec3, tvec3);
+    cv::composeRT(rvec1, camera.t, rvec_decomp, ts_decomp[index] * factor_d1, rvec3, tvec3);
 
     cv::Mat R3;
     cv::Rodrigues(rvec3, R3);
@@ -278,7 +280,7 @@ pose decomposeHomography(cv::Mat H, cv::Mat A)
     Mat t_w = R3.inv() * (ts_decomp[index] * factor_d1);
 
     Mat t_w2 = R3.inv() * tvec3;
-    Mat X_w2 = pos + t_w2;
+    Mat X_w2 = camera.pos + t_w2;
 
     //t_w World coordinateでの Cam1to2の移動量
     //t_w2 World coordinateでの Oto2の移動量
@@ -308,20 +310,22 @@ pose decomposeHomography(cv::Mat H, cv::Mat A)
 }
 
 
+//針の浮きを考慮したhomograhy再構成．ただし，大して読み取り精度には影響しないので，使わない．
+//homographyを分解して，基準とする平面までの距離を針の浮きを考慮して変更する
 cv::Mat remakeHomography(cv::Mat HG)
 {
 
     //針の浮き5mm
     double deviation = 5.5;
 
-    cv::Mat R1 = R;
+    cv::Mat R1 = camera.R;
     cv::Mat rvec1;
     cv::Rodrigues(R1, rvec1);
 
 
     //並進ベクトルの初期値
     //TODO:.xmlからの読み取り
-    cv::Mat tvec1 = t;  //tvec1はCamera coordinate
+    cv::Mat tvec1 = camera.t;  //tvec1はCamera coordinate
 
 
     //    cv::Mat normal = (cv::Mat_<double>(3, 1) << 0, 1, 0);
@@ -338,7 +342,7 @@ cv::Mat remakeHomography(cv::Mat HG)
 
 
     //solutionsの個数が解の個数(それはそう)
-    int solutions = cv::decomposeHomographyMat(HG, A, Rs_decomp, ts_decomp, normals_decomp);
+    int solutions = cv::decomposeHomographyMat(HG, camera.A, Rs_decomp, ts_decomp, normals_decomp);
 
     //normals_decompが(0,0,1)に最も近いものを選択
 
@@ -382,7 +386,7 @@ cv::Mat remakeHomography(cv::Mat HG)
     cv::Mat new_H = Rs_decomp[index] + ts_decomp[index] * normals_decomp[index].t();
 
 
-    new_H = A * new_H * A.inv();
+    new_H = camera.A * new_H * camera.A.inv();
     new_H /= new_H.at<double>(2, 2);  //正規化
 
 
