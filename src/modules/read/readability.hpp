@@ -10,7 +10,6 @@ struct result {
     int readability;
     cv::Mat img;
 };
-int judge(cv::Mat src, int num, int flag);
 std::pair<double, cv::Mat> edgeDetection(cv::Mat img);
 result pointerDetection(cv::Mat src, cv::Mat origin);
 

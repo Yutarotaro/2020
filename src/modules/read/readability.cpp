@@ -22,12 +22,7 @@ extern int type;
 
 namespace Readability
 {
-//tesseract::TessBaseAPI* api = new tesseract::TessBaseAPI();
-//auto ocr = std::make_unique<tesseract::TessBaseAPI>();
 
-int judge(cv::Mat img, int num, int flag)
-{
-}
 
 //struct 作る
 result pointerDetection(cv::Mat src, cv::Mat origin)
