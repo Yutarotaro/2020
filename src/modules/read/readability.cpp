@@ -34,7 +34,7 @@ result pointerDetection(cv::Mat src, cv::Mat origin)
 
 
     std::vector<cv::Vec3f> lines;
-    int votes = 50;
+    int votes = 10;
     cv::HoughLines(src, lines, 1, 0.0001 /*CV_PI / 720.*/, votes, 0, 0);
 
     std::cout << "Number of detected lines" << lines.size() << std::endl;
@@ -172,7 +172,7 @@ result pointerDetection(cv::Mat src, cv::Mat origin)
     std::cout << "dist: " << dist() << std::endl;
 
     int white_thre_max = 60000;
-    int white_thre_min = 13000;
+    int white_thre_min = 11000;
 
     int white_num = cv::countNonZero(origin);
     if (dist() > readable_thre || white_num < white_thre_min || white_num > white_thre_max) {
