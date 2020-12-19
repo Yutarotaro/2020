@@ -72,7 +72,7 @@ int main(int argc, char** argv)
     Init::parseInit();
 
     //読み取り結果を記録
-    std::string fileName = "./diffjust/" + meter_type_s + "/data/" + (argc >= 4 ? argv[3] : "") + "reading.csv";
+    std::string fileName = "./diffjust/" + meter_type_s + "/data/reading/" + (argc >= 4 ? argv[3] : "") + "reading.csv";
     std::ofstream ofs(fileName, std::ios::app);
 
 
@@ -138,8 +138,10 @@ int main(int argc, char** argv)
             cv::BORDER_DEFAULT);
     }
 
-    H = Module::getHomography(Temp.keypoints, Temp.descriptors, edge_temp, edge);
-    //        return 0;
+    Init::Feature Edge(edge);
+
+    //  H = Module::getHomography(Temp.keypoints, Temp.descriptors, edge_temp, edge);
+    H = Temp.getHomography(Edge);
 
     cv::Mat warped_init = cv::Mat::zeros(init.rows, init.cols, CV_8UC3);
     cv::warpPerspective(init, warped_init, H.inv(), warped_init.size());

@@ -249,13 +249,12 @@ pose decomposeHomography(cv::Mat H, cv::Mat A)
 
         if (false) {
             std::cout << "Solution " << i << ":" << std::endl;
-            std::cout << "rvec from homography decomposition: " << rvec_decomp.t() << std::endl;
+            //std::cout << "rvec from homography decomposition: " << rvec_decomp.t() << std::endl;
 
             std::cout << "tvec from homography decomposition: \n"
                       << ts_decomp[i].t() << " \n scaled by d:\n " << factor_d1 * ts_decomp[i].t() << std::endl
                       << std::endl;
-            std::cout << "plane normal from homography decomposition: " << normals_decomp[i].t() << std::endl
-                      << std::endl;
+            std::cout << "plane normal from homography decomposition: " << normals_decomp[i].t() << std::endl;
         }
 
         double tmp = normals_decomp[i].dot(z_axis);

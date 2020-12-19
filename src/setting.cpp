@@ -118,7 +118,7 @@ int main(int argc, char* argv[])
 
     cv::Mat t = R_tmp.inv() * (-tvecs[IMAGE_NUM - 1]);
 
-    t.at<double>(0, 2) -= Param::Calibration::offset;
+    t.at<double>(0, 2) -= Calibration::offset;
 
     fs << "intrinsic" << cam_mat;
     fs << "distortion" << dist_coefs;

@@ -48,6 +48,7 @@ set(INCLUDE_DIR
 #find_package( Eigen3 REQUIRED )
 #include_directories(EIGEN3_INCLUDE_DIR)
 include_directories("/usr/local/Cellar/eigen/3.3.7/include/eigen3")
+include_directories("/usr/local/Cellar/boost/1.73.0/include")
 
 # For OpenCV
 #find_package(OpenCV 4.3.0 EXACT REQUIRED)

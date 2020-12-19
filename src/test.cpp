@@ -1,4 +1,5 @@
 #include "common/init.hpp"
+#include "external/picojson.h"
 #include "modules/pos/calib.hpp"
 #include "modules/pos/homography.hpp"
 #include "modules/read/difference.hpp"
@@ -20,6 +21,7 @@ cv::Mat temp;
 std::string meter_type_s = "dia_V";
 int it;
 int meter_type = 2;
+
 std::vector<cv::KeyPoint> keypoints1;
 cv::Mat descriptors1;
 
@@ -32,11 +34,29 @@ cv::Mat HP;
 
 Init::Params params;
 
-
+cv::Point ROI_tl[1000];
 int main(int argc, char** argv)
 {
     //parameter
     Init::parseInit();
+
+    // JSONデータの読み込み。
+    std::ifstream ifs("save.json", std::ios::in);
+    if (ifs.fail()) {
+        std::cerr << "failed to read test.json" << std::endl;
+        return 1;
+    }
+    const std::string json((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+    ifs.close();
+
+    // JSONデータを解析する。
+    picojson::value v;
+    const std::string err = picojson::parse(v, json);
+    if (err.empty() == false) {
+        std::cerr << err << std::endl;
+        return 2;
+    }
+    picojson::object& obj = v.get<picojson::object>();
 
 
     // cv::Mat Base_calib = cv::imread("../pictures/meter_experiment/pic-1.JPG", 1);
@@ -46,8 +66,8 @@ int main(int argc, char** argv)
 
 
     //Base_clockの特徴点を保存
-    //    Init::Feature Base(Base_clock);
-    Init::Feature Base("../pictures/meter_template/Base_clockdia_V.png");
+    Init::Feature Base(Base_clock);
+    //Init::Feature Base("../pictures/meter_template/Base_clockdia_V.png");
 
 
     Module::pose p;
@@ -59,22 +79,31 @@ int main(int argc, char** argv)
     int st = std::stoi(argv[1]);
     int to = st;
 
-    std::string fileName = "./result_for_dia.csv";
-    std::ofstream ofs(fileName, std::ios::app);  //追加モード
+
+    //読み取り結果を記録
+    std::string fileName = "./diffjust/" + meter_type_s + "/data/pos/" + (argc >= 3 ? argv[2] : "") + ".csv";
+    std::ofstream ofs(fileName, std::ios::app);
 
     int ct = 0;
 
 
     for (int i = st; i <= to; i++) {
-        std::cout << std::endl
-                  << i << "-th image" << std::endl;
+        std::cout << i << "-th image" << std::endl;
+
+
+        picojson::array& ary = obj[std::to_string(i)].get<picojson::array>();
+        ROI_tl[i].x = std::stoi(ary[0].get<std::string>());
+        ROI_tl[i].y = std::stoi(ary[1].get<std::string>());
+
+
         std::string path_calib = "../pictures/dia_experiment_V/pic" + std::to_string(i) + ".JPG";
 
         //mask image
         std::string path_clock = "../pictures/dia_experiment_V/mask/pic" + std::to_string(i) + ".png";
 
         cv::Mat Now_calib = cv::imread(path_calib, 1);
-        cv::Mat Now_clock = cv::imread(path_clock, 1);
+        // cv::Mat Now_clock = cv::imread(path_clock, 1);
+        Init::Feature Now_clock(path_clock);
 
         Module::pose q;
         Calib::calibration(Now_calib, q, 0);  //qに対象画像のカメラ視点，位置が入る
@@ -103,40 +132,31 @@ int main(int argc, char** argv)
 
         //Homgraphy Estimation
 
-#if 0
 
+        Init::Feature ROI("../pictures/dia_experiment_V/roi/pic" + std::to_string(i) + ".png");
         cv::Mat roi = cv::imread("../pictures/dia_experiment_V/roi/pic" + std::to_string(i) + ".png", 1);
         double temp_size = 784.;
         double rate = std::max(temp_size / roi.cols, temp_size / roi.rows);
 
         cv::Mat resized_roi;
         cv::resize(roi, resized_roi, cv::Size(), rate, rate);
+        Init::Feature R_ROI(resized_roi);
+
+        Base.getHomography(R_ROI);
+        for (auto j : R_ROI.featurePoint) {
+            ROI.featurePoint.push_back(cv::Point(j.x / rate + ROI_tl[i].x, j.y / rate + ROI_tl[i].y));  //resized_roi内座標をNow_clock内座標に変換
+        }
+
+        cv::Mat masks;
+        cv::Mat H4 = cv::findHomography(Base.featurePoint, ROI.featurePoint, masks, cv::RANSAC, 3);
+        cv::Mat warped_2 = cv::Mat::zeros(Now_clock.img.rows, Now_clock.img.cols, CV_8UC3);
+        cv::warpPerspective(Now_clock.img, warped_2, H4.inv(), warped_2.size());
+
+        Init::Feature Warp(warped_2);
+        cv::Mat H3 = Base.getHomography(Warp);
 
 
-        //Base_clock -> resized_roi
-        cv::Mat H_0 = Module::getHomography(Base_clock, resized_roi);
-
-        //resized_roi -> roi
-        Init::Feature f_resized_roi(resized_roi);
-        cv::Mat H_1 = Module::getHomography(f_resized_roi.keypoints, f_resized_roi.descriptors, resized_roi, roi);
-
-        //roi -> Now_clock
-        Init::Feature f_roi(roi);
-        cv::Mat H_2 = Module::getHomography(f_roi.keypoints, f_roi.descriptors, roi, Now_clock);
-        //要改良　画像のサイズがあっていないと意味がない
-        cv::Mat H_temp = H_0 * H_1 * H_2;
-
-
-#endif
-        //2 steps homography estimation
-        cv::Mat H = Module::getHomography(Base.keypoints, Base.descriptors, Base.img, Now_clock);
-        cv::Mat warped = cv::Mat::zeros(Now_clock.rows, Now_clock.cols, CV_8UC3);
-        cv::warpPerspective(Now_clock, warped, H.inv(), warped.size());
-
-        cv::Mat H2 = Module::getHomography(Base.keypoints, Base.descriptors, Base.img, warped);
-
-
-        Module::pose r = Module::decomposeHomography(H * H2, camera.A);
+        Module::pose r = Module::decomposeHomography(H4 * H3, camera.A);
 
         std::cout << std::endl
                   << "Homography分解で得られた並進ベクトル(world)" << std::endl
