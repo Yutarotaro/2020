@@ -109,8 +109,7 @@ public:
   }
 };
 
-class Params {
-public:
+struct Params {
   int thresh;         // 2値化の閾値
   int total;          //枚数
   std::string picdir; //ディレクトリ

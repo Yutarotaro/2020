@@ -1,17 +1,4 @@
-#include "common/init.hpp"
-#include "external/picojson.h"
-#include "modules/pos/calib.hpp"
-#include "modules/pos/homography.hpp"
-#include "modules/read/difference.hpp"
-#include "opencv2/highgui.hpp"
-#include "opencv2/xfeatures2d.hpp"
-#include "params/pose_params.hpp"
-#include <cstdlib>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <string>
-#include <vector>
+#include "include.hpp"
 
 Camera_pose camera;
 
@@ -50,7 +37,6 @@ int main(int argc, char **argv) {
                          std::istreambuf_iterator<char>());
   ifs.close();
 
-  // JSONデータの読み込み
   picojson::value v;
   const std::string err = picojson::parse(v, json);
   if (err.empty() == false) {
@@ -67,7 +53,6 @@ int main(int argc, char **argv) {
 
   // Base_clockの特徴点を保存
   Init::Feature Base(Base_clock);
-  // Init::Feature Base("../pictures/meter_template/Base_clockdia_V.png");
 
   Module::pose p;
   Calib::calibration(Base_calib, p,
@@ -76,64 +61,60 @@ int main(int argc, char **argv) {
 
   cv::Mat rvec; //回転ベクトル
 
-  int st = std::stoi(argv[1]);
-  int to = st;
-
   //読み取り結果を記録
   std::string fileName = "./diffjust/" + meter_type_s + "/data/pos/" +
                          (argc >= 3 ? argv[2] : "") + ".csv";
   std::ofstream ofs(fileName, std::ios::app);
 
   int ct = 0;
+  int i = std::stoi(argv[1]);
 
-  for (int i = st; i <= to; i++) {
+  std::string path_calib =
+      "../pictures/" + meter_type_s + "/pic" + std::to_string(i) + ".JPG";
+  Init::Feature Now_calib(path_calib); // for ground truth
 
-    picojson::array &ary = obj[std::to_string(i)].get<picojson::array>();
-    ROI_tl[i].x = std::stoi(ary[0].get<std::string>());
-    ROI_tl[i].y = std::stoi(ary[1].get<std::string>());
+  Module::pose q;
+  Calib::calibration(Now_calib.img, q,
+                     0); // qにテスト画像のカメラ視点，位置が入る
 
-    std::string path_calib =
-        "../pictures/" + meter_type_s + "/pic" + std::to_string(i) + ".JPG";
+  cv::Mat R_calib = q.orientation * p.orientation.inv();
+  cv::Rodrigues(R_calib, rvec);
+
+  // offset world coordinate
+  // cv::Mat offset = (cv::Mat_<double>(3, 1) << -337., -73.2, -410.); //for
+  // dia
+  cv::Mat offset = (cv::Mat_<double>(3, 1) << 446.9431995993519,
+                    79.59721708740386, 332.); // for bthesis
+
+  //横軸: メータ平面上に決めた原点からの距離(chess boardからではない)
+  cv::Mat distance = q.orientation.inv() * q.position + offset;
+
+  std::cout << "dist. from meter of Test Image: " << std::endl
+            << -distance << std::endl;
+
+  // pose estimation誤差
+  cv::Mat calib_pos =
+      p.orientation.inv() * p.position - q.orientation.inv() * q.position;
+
+  std::cout << "chessboard並進ベクトル" << std::endl
+            << calib_pos << std::endl
+            << "回転ベクトル" << std::endl
+            << rvec << std::endl
+            << std::endl;
+
+  ofs << i << ',' << -distance.at<double>(1, 0) << ','
+      << -distance.at<double>(2, 0) << ',' << distance.at<double>(0, 0) << ','
+      << cv::norm(rvec) * 180.0 / CV_PI << ',';
+  //先にgroundtruthの方は保存しておく
+  // Homography Estimation
+
+  try {
 
     // mask image
     std::string path_clock = "../pictures/" + meter_type_s + "/detection/pic" +
                              std::to_string(i) + ".png";
 
-    Init::Feature Now_calib(path_calib); // for ground truth
     Init::Feature Now_clock(path_clock); // for homography decomposition
-
-    Module::pose q;
-    Calib::calibration(Now_calib.img, q,
-                       0); // qにテスト画像のカメラ視点，位置が入る
-
-    cv::Mat R_calib = q.orientation * p.orientation.inv();
-    cv::Rodrigues(R_calib, rvec);
-
-    // offset world coordinate
-    // cv::Mat offset = (cv::Mat_<double>(3, 1) << -337., -73.2, -410.); //for
-    // dia
-    cv::Mat offset = (cv::Mat_<double>(3, 1) << 446.9431995993519,
-                      79.59721708740386, 332.); // for bthesis
-
-    //横軸: メータ平面上に決めた原点からの距離(chess boardからではない)
-    cv::Mat distance = q.orientation.inv() * q.position + offset;
-
-    std::cout << "dist. from meter of Test Image: " << -distance << std::endl;
-
-    // pose estimation誤差
-    cv::Mat calib_pos =
-        p.orientation.inv() * p.position - q.orientation.inv() * q.position;
-
-    std::cout << "chessboard並進ベクトル" << std::endl
-              << calib_pos << std::endl
-              << "回転ベクトル" << std::endl
-              << rvec << std::endl
-              << std::endl;
-
-    ofs << i << ',' << cv::norm(distance) << ','
-        << cv::norm(rvec) * 180.0 / CV_PI << ',';
-    //先にgroundtruthの方は保存しておく
-    // Homgraphy Estimation
 
     Init::Feature ROI("../pictures/" + meter_type_s + "/roi/pic" +
                       std::to_string(i) + ".png");
@@ -146,7 +127,21 @@ int main(int argc, char **argv) {
 
     cv::Mat resized_roi;
     cv::resize(roi, resized_roi, cv::Size(), rate, rate);
+
+    int unsharp = 1;
+    if (unsharp) {
+      double k = 3.;
+      cv::Mat kernel =
+          (cv::Mat_<float>(3, 3) << 0, -k, 0, -k, 4 * k + 1., -k, 0, -k, 0);
+
+      cv::filter2D(resized_roi, resized_roi, -1, kernel, cv::Point(-1, -1), 0,
+                   cv::BORDER_DEFAULT);
+    }
+
     Init::Feature R_ROI(resized_roi);
+    picojson::array &ary = obj[std::to_string(i)].get<picojson::array>();
+    ROI_tl[i].x = std::stoi(ary[0].get<std::string>());
+    ROI_tl[i].y = std::stoi(ary[1].get<std::string>());
 
     Base.getHomography(R_ROI);
     for (auto j : R_ROI.featurePoint) {
@@ -194,7 +189,9 @@ int main(int argc, char **argv) {
     ofs << cv::norm(calib_pos - r.position) << ','
         << cv::norm(calib_pos - r.position) / cv::norm(distance) << ','
         << cv::norm(r.orientation) * 180.0 / CV_PI << ','
-        << error * 180.0 / CV_PI << ',' << std::endl;
+        << error * 180.0 / CV_PI << ',' << 1 << std::endl;
+  } catch (cv::Exception &e) {
+    ofs << 0 << ',' << 0 << ',' << 0 << ',' << 0 << ',' << 0 << std::endl;
   }
   return 0;
 }

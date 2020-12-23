@@ -243,7 +243,7 @@ pose decomposeHomography(cv::Mat H, cv::Mat A) {
   for (int i = 0; i < solutions; i++) {
     cv::Rodrigues(Rs_decomp[i], rvec_decomp);
 
-    if (true) {
+    if (false) {
       std::cout << "Solution " << i << ":" << std::endl;
       std::cout << "rvec from homography decomposition: " << rvec_decomp.t()
                 << std::endl;

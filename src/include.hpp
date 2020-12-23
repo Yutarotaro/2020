@@ -1,7 +1,7 @@
-#include "Eigen/Dense"
 #include "common/init.hpp"
 #include "external/AdaptiveIntegralThresholding/thresh.hpp"
 #include "external/cmdline/cmdline.h"
+#include "external/picojson.h"
 #include "params/pose_params.hpp"
 #include "pos/calib.hpp"
 #include "pos/homography.hpp"
