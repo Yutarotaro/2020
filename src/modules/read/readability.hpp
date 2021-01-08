@@ -7,6 +7,7 @@ namespace Readability
 {
 struct result {
     double value;
+    double dist;
     int readability;
     cv::Mat img;
 };
