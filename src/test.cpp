@@ -101,10 +101,6 @@ int main(int argc, char **argv) {
             << "回転ベクトル" << std::endl
             << rvec << std::endl
             << std::endl;
-
-  ofs << i << ',' << -distance.at<double>(1, 0) << ','
-      << -distance.at<double>(2, 0) << ',' << distance.at<double>(0, 0) << ','
-      << cv::norm(rvec) * 180.0 / CV_PI << ',';
   //先にgroundtruthの方は保存しておく
   // Homography Estimation
 
@@ -186,12 +182,18 @@ int main(int argc, char **argv) {
               << cv::norm(rvec) * 180.0 / CV_PI << ' ' << error * 180.0 / CV_PI
               << std::endl;
 
-    ofs << cv::norm(calib_pos - r.position) << ','
-        << cv::norm(calib_pos - r.position) / cv::norm(distance) << ','
-        << cv::norm(r.orientation) * 180.0 / CV_PI << ','
-        << error * 180.0 / CV_PI << ',' << 1 << std::endl;
+    if (cv::norm(calib_pos - r.position) < cv::norm(distance)) {
+      ofs << i << ',' << -distance.at<double>(1, 0) << ','
+          << -distance.at<double>(2, 0) << ',' << distance.at<double>(0, 0)
+          << ',' << cv::norm(rvec) * 180.0 / CV_PI << ',';
+
+      ofs << cv::norm(calib_pos - r.position) << ','
+          << cv::norm(calib_pos - r.position) / cv::norm(distance) << ','
+          << cv::norm(r.orientation) * 180.0 / CV_PI << ','
+          << error * 180.0 / CV_PI << ',' << 1 << std::endl;
+    }
   } catch (cv::Exception &e) {
-    ofs << 0 << ',' << 0 << ',' << 0 << ',' << 0 << ',' << 0 << std::endl;
+    //    ofs << 0 << ',' << 0 << ',' << 0 << ',' << 0 << ',' << 0 << std::endl;
   }
   return 0;
 }
