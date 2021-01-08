@@ -182,7 +182,7 @@ result pointerDetection(cv::Mat src, cv::Mat origin)
         std::cout << "Readable!!" << std::endl;
     }
 
-    return {value, readability, bgr_origin};
+    return {value, dist(), readability, bgr_origin};
 }
 
 }  // namespace Readability
