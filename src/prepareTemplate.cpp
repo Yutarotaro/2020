@@ -45,7 +45,8 @@ int main(int argc, char **argv) {
 
   cv::Mat Base_clock_tmp =
       cv::imread("../pictures/" + params[meter_type].picdir + "/pic" +
-                     params[meter_type].index + ".JPG",
+                     // params[meter_type].index + ".JPG",
+                     "-3.JPG",
                  1);
 
   // 2158,1383
@@ -66,9 +67,11 @@ int main(int argc, char **argv) {
 
   ///////////////////////////////
 
-  cv::imwrite("../pictures/meter_template/Base_clock" + meter_type_s + ".png",
-              Base_clock);
-  cv::imwrite("../pictures/meter_template/temp" + meter_type_s + ".png", temp);
+  cv::imwrite("../pictures/meter_template/temp.png");
+  //  cv::imwrite("../pictures/meter_template/Base_clock" + meter_type_s +
+  //  ".png",            Base_clock);
+  // cv::imwrite("../pictures/meter_template/temp" + meter_type_s +
+  // ".png", temp);
 }
 
 void message() {

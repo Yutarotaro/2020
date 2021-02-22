@@ -183,9 +183,14 @@ int main(int argc, char **argv) {
               << std::endl;
 
     if (cv::norm(calib_pos - r.position) < cv::norm(distance)) {
-      ofs << i << ',' << -distance.at<double>(1, 0) << ','
-          << -distance.at<double>(2, 0) << ',' << distance.at<double>(0, 0)
-          << ',' << cv::norm(rvec) * 180.0 / CV_PI << ',';
+      if (0) {
+        ofs << i << ',' << -distance.at<double>(1, 0) << ','
+            << -distance.at<double>(2, 0) << ',' << distance.at<double>(0, 0)
+            << ',' << cv::norm(rvec) * 180.0 / CV_PI << ',';
+      } else {
+        ofs << i << ',' << cv::norm(distance) << ','
+            << cv::norm(rvec) * 180.0 / CV_PI << ',';
+      }
 
       ofs << cv::norm(calib_pos - r.position) << ','
           << cv::norm(calib_pos - r.position) / cv::norm(distance) << ','

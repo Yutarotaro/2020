@@ -95,6 +95,15 @@ public:
       obj.featurePoint.push_back(obj.keypoints[kp2_idx].pt);
     }
 
+    // before RANSAC
+    cv::Mat drawMatch;
+    cv::drawMatches(this->img, this->keypoints, obj.img, obj.keypoints,
+                    goodMatch, drawMatch);
+    //    imwrite("../output/match_point.jpg", drawmatch);
+    imwrite("./diffjust/" + meter_type_s + "/match/match_inlier_" +
+                std::to_string(it) + "before_ransac.png",
+            drawMatch);
+
     //インライアの対応点のみ表示
     cv::Mat drawMatch_inlier;
     cv::drawMatches(this->img, this->keypoints, obj.img, obj.keypoints,

@@ -104,6 +104,8 @@ void calibration(cv::Mat &img, Module::pose &p, int flag) {
   p.position = tvec;
   p.orientation = R_0;
 
+  std::cout << "rvec_0" << rvec << std::endl;
+
   if (flag) {
     // set 外部パラメータof template image
     camera.R = R_0;
