@@ -62,7 +62,6 @@ std::map<std::string, int> mp;
 int ite = 1; // erode, dilate
 
 int main(int argc, char **argv) {
-  // cmdline::parser parser;
   //入力が正しいか確認
   if (message(argc, argv)) {
     std::cout << "unexpected inputs" << std::endl;
@@ -99,7 +98,6 @@ int main(int argc, char **argv) {
                                 "/roi/pic" + std::string(argv[1]) + ".png",
                             1);
 
-  //将来的にinitの方もclass管理したい(名前が衝突するからNowにしたい)
   // Init::Feature Now("../pictures/" + params[meter_type].picdir + "/roi/pic" +
   // std::string(argv[1]) + ".png");
 
@@ -135,8 +133,6 @@ int main(int argc, char **argv) {
 
   Init::Feature Edge(edge);
 
-  //  H = Module::getHomography(Temp.keypoints, Temp.descriptors, edge_temp,
-  //  edge);
   H = Temp.getHomography(Edge);
 
   cv::Mat warped_init = cv::Mat::zeros(init.rows, init.cols, CV_8UC3);
@@ -165,7 +161,7 @@ int main(int argc, char **argv) {
   cv::Mat hsv, mask_img;
   cv::cvtColor(warped, hsv, CV_BGR2HSV);
   cv::inRange(hsv, cv::Scalar(0, 0, 100), cv::Scalar(179, 255, 255), mask_img);
-  mask_img = ~mask_img;
+  mask_img = ~mask_img; //反転
 
   cv::Mat gray_warped;
   cv::cvtColor(warped, gray_warped, cv::COLOR_BGR2GRAY);
@@ -174,12 +170,6 @@ int main(int argc, char **argv) {
   // cv::erode(bwi, bwi, cv::Mat(), cv::Point(-1, -1), 1);
 
   ////////////////////////////////////////
-
-  // cv::imshow("bwi", bwi);
-  // cv::imshow("bwt", bwt);
-
-  // cv::imwrite("bwi.png", bwi);
-  // cv::imwrite("bwt.png", bwt);
 
   // cv::Mat diff_tmp = bwi - bwt;
   cv::Mat diff_tmp;
@@ -209,7 +199,6 @@ int main(int argc, char **argv) {
   dif = diff;
 
   //ここで背景切り取り
-
   ///////////////////
 
   // cv::imwrite("./diffjust/" + meter_type_s + "/diff/" + std::to_string(it) +
@@ -234,11 +223,10 @@ int main(int argc, char **argv) {
 
   cv::ximgproc::thinning(dif, thinned_dif, cv::ximgproc::WMF_EXP);
 
-  //    コンストラクタ じゃなくて，class内関数でいい
   Readability::result Result = {0, 0, 0, cv::Mat()};
   Result = Readability::pointerDetection(thinned_dif, dif);
 
-  int white_num = cv::countNonZero(dif);
+  int white_num = cv::countNonZero(dif); ///白画素数
 
   if (record) {
     ofs << it << ',' << Result.value << ',' << Result.dist << ','

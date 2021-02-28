@@ -198,6 +198,7 @@ int main(int argc, char **argv) {
           << error * 180.0 / CV_PI << ',' << 1 << std::endl;
     }
   } catch (cv::Exception &e) {
+    //途中でプログラムが止まった場合
     //    ofs << 0 << ',' << 0 << ',' << 0 << ',' << 0 << ',' << 0 << std::endl;
   }
   return 0;
