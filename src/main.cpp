@@ -1,4 +1,4 @@
-#include "include.hpp"
+#include "include"
 
 Camera_pose camera;
 
@@ -231,63 +231,6 @@ int main(int argc, char **argv) {
   //    std::to_string(it) + ".png", warped_dif);
 
   cv::Mat thinned_dif;
-
-#if 0
-    //moment
-    cv::dilate(dif, dif, cv::Mat(), cv::Point(-1, -1), 1);
-    using namespace std;
-    using namespace cv;
-    RNG rng(12345);
-    int thresh = 100;
-    Mat canny_output;
-    Canny(dif, canny_output, thresh, thresh * 2, 3);
-    vector<vector<Point>> contours;
-    findContours(canny_output, contours, RETR_TREE, CHAIN_APPROX_SIMPLE);
-    vector<Moments> mu(contours.size());
-    for (size_t i = 0; i < contours.size(); i++) {
-        mu[i] = moments(contours[i]);
-    }
-    vector<Point2f> mc(contours.size());
-    for (size_t i = 0; i < contours.size(); i++) {
-        //add 1e-5 to avoid division by zero
-        mc[i] = Point2f(static_cast<float>(mu[i].m10 / (mu[i].m00 + 1e-5)),
-            static_cast<float>(mu[i].m01 / (mu[i].m00 + 1e-5)));
-        cout << "mc[" << i << "]=" << mc[i] << endl;
-    }
-    Mat drawing = Mat::zeros(canny_output.size(), CV_8UC3);
-    for (size_t i = 0; i < contours.size(); i++) {
-        Scalar color = Scalar(rng.uniform(0, 256), rng.uniform(0, 256), rng.uniform(0, 256));
-        drawContours(drawing, contours, (int)i, color, 2);
-        circle(drawing, mc[i], 4, color, -1);
-        //imshow("Contours", drawing);
-    }
-    cout << "\t Info: Area and Contour Length \n";
-
-    double area_temp = 0.;
-    int cont_index = -1;
-
-    for (size_t i = 0; i < contours.size(); i++) {
-        cout << " * Contour[" << i << "] - Area (M_00) = " << std::fixed << std::setprecision(2) << mu[i].m00
-             << " - Area OpenCV: " << contourArea(contours[i]) << " - Length: " << arcLength(contours[i], true) << endl;
-        if (norm(Point2f(mc[i].x - diff.cols / 2, mc[i].y - diff.rows / 2)) < 100) {
-            if (arcLength(contours[i], true) > area_temp) {
-                area_temp = arcLength(contours[i], true);
-                cont_index = i;
-            }
-        }
-    }
-
-    cout << "cont_index: " << cont_index << endl;
-
-    Mat result_img = Mat::zeros(canny_output.size(), CV_8UC3);
-    drawContours(result_img, contours, (int)cont_index, cv::Scalar(255, 0, 0), 2);
-    circle(result_img, mc[cont_index], 4, cv::Scalar(255, 0, 0), -1);
-    drawContours(result_img, contours, (int)(1 + cont_index), cv::Scalar(255, 0, 0), 2);
-    circle(result_img, mc[1 + cont_index], 4, cv::Scalar(255, 0, 0), -1);
-
-
-    cv::imwrite("./drawing/" + to_string(it) + ".png", result_img);
-#endif
 
   cv::ximgproc::thinning(dif, thinned_dif, cv::ximgproc::WMF_EXP);
 

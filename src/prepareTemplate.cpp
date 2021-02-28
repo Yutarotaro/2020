@@ -67,9 +67,7 @@ int main(int argc, char **argv) {
 
   ///////////////////////////////
 
-  cv::imwrite("../pictures/meter_template/temp.png");
-  //  cv::imwrite("../pictures/meter_template/Base_clock" + meter_type_s +
-  //  ".png",            Base_clock);
+  /// cv::imwrite("../pictures/meter_template/temp.png");
   // cv::imwrite("../pictures/meter_template/temp" + meter_type_s +
   // ".png", temp);
 }
